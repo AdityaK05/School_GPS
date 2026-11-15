@@ -1,0 +1,28 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "lib": ["ES2022", "DOM"],
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "noEmit": true,
+    "jsx": "react",
+    "baseUrl": ".",
+    "paths": {
+      "@school-transport-platform/constants": ["packages/constants/src/index.ts"],
+      "@school-transport-platform/constants/*": ["packages/constants/src/*"],
+      "@school-transport-platform/shared-types": ["packages/shared-types/src/index.ts"],
+      "@school-transport-platform/shared-types/*": ["packages/shared-types/src/*"],
+      "@school-transport-platform/utils": ["packages/utils/src/index.ts"],
+      "@school-transport-platform/utils/*": ["packages/utils/src/*"],
+      "@school-transport-platform/validation": ["packages/validation/src/index.ts"],
+      "@school-transport-platform/validation/*": ["packages/validation/src/*"],
+      "@school-transport-platform/client-sdk": ["packages/client-sdk/src/index.ts"],
+      "@school-transport-platform/client-sdk/*": ["packages/client-sdk/src/*"]
+    }
+  },
+  "include": ["packages/**/*", "apps/**/*", "tests/**/*"]
+}

@@ -1,0 +1,25 @@
+{
+  "name": "@school-transport-platform/admin-web",
+  "version": "1.0.0",
+  "description": "School Administrator Web Dashboard & Operational Portal",
+  "main": "src/index.ts",
+  "scripts": {
+    "build": "tsc && vite build",
+    "dev": "vite",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@school-transport-platform/client-sdk": "*",
+    "@school-transport-platform/constants": "*",
+    "@school-transport-platform/shared-types": "*",
+    "@school-transport-platform/utils": "*",
+    "@school-transport-platform/validation": "*",
+    "@types/react-dom": "^19.3.0",
+    "@vitejs/plugin-react": "^6.3.0",
+    "react-dom": "^19.3.1",
+    "vite": "^8.3.8"
+  },
+  "devDependencies": {
+    "typescript": "^5.3.3"
+  }
+}

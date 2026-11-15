@@ -1,0 +1,25 @@
+{
+  "root": true,
+  "extends": ["eslint:recommended"],
+  "parserOptions": {
+    "ecmaVersion": 2022,
+    "sourceType": "module"
+  },
+  "env": {
+    "node": true,
+    "es2022": true,
+    "browser": true
+  },
+  "ignorePatterns": [
+    "dist/**",
+    "build/**",
+    "node_modules/**",
+    "*.d.ts",
+    "packages/**/dist/**",
+    "apps/**/dist/**"
+  ],
+  "rules": {
+    "no-unused-vars": "off",
+    "no-undef": "off"
+  }
+}

@@ -1,0 +1,22 @@
+services:
+  - type: web
+    name: school-gps-backend-api
+    env: node
+    plan: standard
+    region: singapore
+    buildCommand: npm install && npm run build
+    startCommand: npm run start:api
+    healthCheckPath: /api/v1/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+      - key: FIREBASE_PROJECT_ID
+        sync: false
+      - key: FIREBASE_SERVER_KEY
+        sync: false

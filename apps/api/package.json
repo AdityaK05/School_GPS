@@ -1,0 +1,28 @@
+{
+  "name": "@school-transport-platform/api",
+  "version": "1.0.0",
+  "description": "Production Backend API & Deterministic Safety Engine for School Transport Platform",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "dev": "tsx watch src/index.ts",
+    "test": "vitest"
+  },
+  "dependencies": {
+    "@school-transport-platform/constants": "*",
+    "@school-transport-platform/shared-types": "*",
+    "@school-transport-platform/utils": "*",
+    "@school-transport-platform/validation": "*",
+    "@supabase/supabase-js": "^2.39.0",
+    "dotenv": "^16.4.5",
+    "zod": "^3.22.4"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "tsx": "^4.7.1",
+    "typescript": "^5.3.3",
+    "vitest": "^1.3.0"
+  }
+}

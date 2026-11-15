@@ -1,0 +1,85 @@
+export const USER_ROLES = {
+  SUPER_ADMIN: 'SUPER_ADMIN',
+  SCHOOL_ADMIN: 'SCHOOL_ADMIN',
+  TRANSPORT_MANAGER: 'TRANSPORT_MANAGER',
+  DRIVER: 'DRIVER',
+  ATTENDANT: 'ATTENDANT',
+  PARENT: 'PARENT',
+} as const;
+
+export type UserRole = (typeof USER_ROLES)[keyof typeof USER_ROLES];
+
+export const JOURNEY_STATES = {
+  EXPECTED: 'EXPECTED',
+  BOARDING_PENDING: 'BOARDING_PENDING',
+  BOARDED: 'BOARDED',
+  ONBOARD: 'ONBOARD',
+  EXIT_PENDING: 'EXIT_PENDING',
+  EXIT_RECORDED: 'EXIT_RECORDED',
+  COMPLETED: 'COMPLETED',
+} as const;
+
+export type JourneyState = (typeof JOURNEY_STATES)[keyof typeof JOURNEY_STATES];
+
+export const JOURNEY_EVENTS = {
+  TRIP_STARTED: 'TRIP_STARTED',
+  TRIP_COMPLETED: 'TRIP_COMPLETED',
+  STUDENT_BOARDING: 'STUDENT_BOARDING',
+  STUDENT_EXIT: 'STUDENT_EXIT',
+  BUS_LOCATION_UPDATE: 'BUS_LOCATION_UPDATE',
+  BUS_REACHED_STOP: 'BUS_REACHED_STOP',
+  GPS_OFFLINE: 'GPS_OFFLINE',
+  GPS_RECOVERED: 'GPS_RECOVERED',
+  DUPLICATE_RFID_SCAN: 'DUPLICATE_RFID_SCAN',
+  MANUAL_ATTENDANCE_OVERRIDE: 'MANUAL_ATTENDANCE_OVERRIDE',
+} as const;
+
+export type JourneyEventType = (typeof JOURNEY_EVENTS)[keyof typeof JOURNEY_EVENTS];
+
+export const EXCEPTION_TYPES = {
+  BOARDING_MISSING: 'BOARDING_MISSING',
+  WRONG_BUS: 'WRONG_BUS',
+  WRONG_STOP_EXIT: 'WRONG_STOP_EXIT',
+  EXIT_MISSING: 'EXIT_MISSING',
+  GPS_UNAVAILABLE: 'GPS_UNAVAILABLE',
+  DUPLICATE_SCAN: 'DUPLICATE_SCAN',
+  SYNC_FAILURE: 'SYNC_FAILURE',
+  MANUAL_ATTENDANCE_OVERRIDE: 'MANUAL_ATTENDANCE_OVERRIDE',
+} as const;
+
+export type ExceptionType = (typeof EXCEPTION_TYPES)[keyof typeof EXCEPTION_TYPES];
+
+export const CANONICAL_EXCEPTION_TYPES = Object.values(EXCEPTION_TYPES);
+
+export const DEVICE_STATUS = {
+  ONLINE: 'ONLINE',
+  OFFLINE: 'OFFLINE',
+  UNKNOWN: 'UNKNOWN',
+  ACTIVE: 'ACTIVE',
+  INACTIVE: 'INACTIVE',
+  DECOMMISSIONED: 'DECOMMISSIONED',
+} as const;
+
+export type DeviceStatus = (typeof DEVICE_STATUS)[keyof typeof DEVICE_STATUS];
+
+export const SYNC_STATUS = {
+  PENDING: 'PENDING',
+  SYNCING: 'SYNCING',
+  SYNCED: 'SYNCED',
+  FAILED: 'FAILED',
+} as const;
+
+export type SyncStatus = (typeof SYNC_STATUS)[keyof typeof SYNC_STATUS];
+
+export const THRESHOLDS = {
+  /** GPS freshness window in seconds (ADR-8). Stale if > 60s */
+  GPS_FRESHNESS_SECONDS: 60,
+  /** Exit missing grace period in minutes after bus reaches stop (ADR-7) */
+  EXIT_MISSING_GRACE_PERIOD_MINUTES: 5,
+  /** Default stop geofence radius in meters */
+  DEFAULT_STOP_GEOFENCE_RADIUS_METERS: 75,
+  /** Maximum allowable distance in meters from assigned stop for valid drop-off */
+  MAX_STOP_EXIT_TOLERANCE_METERS: 150,
+  /** Duplicate scan detection window in seconds */
+  DUPLICATE_SCAN_WINDOW_SECONDS: 30,
+} as const;

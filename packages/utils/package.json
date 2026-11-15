@@ -1,0 +1,13 @@
+{
+  "name": "@school-transport-platform/utils",
+  "version": "1.0.0",
+  "description": "Shared utility helpers for School Transport Platform",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc"
+  },
+  "devDependencies": {
+    "typescript": "^5.3.3"
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "name": "@school-transport-platform/mobile",
+  "version": "1.0.0",
+  "description": "Unified Mobile Application for Attendants & Parents (React Native / Expo)",
+  "main": "src/index.ts",
+  "scripts": {
+    "build": "tsc"
+  },
+  "dependencies": {
+    "@school-transport-platform/client-sdk": "*",
+    "@school-transport-platform/constants": "*",
+    "@school-transport-platform/shared-types": "*",
+    "@school-transport-platform/utils": "*",
+    "@school-transport-platform/validation": "*"
+  },
+  "devDependencies": {
+    "typescript": "^5.3.3"
+  }
+}

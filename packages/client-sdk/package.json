@@ -1,0 +1,20 @@
+{
+  "name": "@school-transport-platform/client-sdk",
+  "version": "1.0.0",
+  "description": "Shared Client SDK, Real-time Engine & Offline Queue for School Transport Platform",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc"
+  },
+  "dependencies": {
+    "@school-transport-platform/constants": "*",
+    "@school-transport-platform/shared-types": "*",
+    "@school-transport-platform/utils": "*",
+    "@school-transport-platform/validation": "*",
+    "@supabase/supabase-js": "^2.39.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.3.3"
+  }
+}

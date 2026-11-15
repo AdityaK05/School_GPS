@@ -1,0 +1,31 @@
+{
+  "name": "school-transport-platform",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "test": "vitest",
+    "test:run": "vitest run",
+    "simulate": "tsx scripts/simulate-trip.ts",
+    "audit:ui": "tsx scripts/scrape-and-test-ui.ts",
+    "typecheck": "tsc --noEmit",
+    "dev:api": "npm --prefix apps/api run dev",
+    "dev:admin": "npm --prefix apps/admin-web run dev",
+    "start:api": "npm --prefix apps/api run start",
+    "build": "npm --prefix packages/shared-types run build && npm --prefix packages/constants run build && npm --prefix packages/utils run build && npm --prefix packages/validation run build && npm --prefix packages/client-sdk run build && npm --prefix apps/api run build && npm --prefix apps/admin-web run build",
+    "lint": "eslint .",
+    "format": "prettier --write ."
+  },
+  "devDependencies": {
+    "eslint": "^8.0.0",
+    "prettier": "^3.0.0",
+    "typescript": "^5.0.0",
+    "vitest": "^1.0.0"
+  },
+  "dependencies": {
+    "@types/react": "^19.3.0",
+    "react": "^19.3.1"
+  }
+}

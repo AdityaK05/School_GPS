@@ -1,0 +1,36 @@
+# Node dependencies
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Environment and secrets
+.env
+.env.*
+!.env.example
+.mcp.json
+*.pem
+*.key
+*.cert
+
+# Build outputs
+dist/
+build/
+.tsbuildinfo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Supabase local
+.supabase/
+
+# IDE / Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Test coverage & reports
+coverage/
+.vitest/
