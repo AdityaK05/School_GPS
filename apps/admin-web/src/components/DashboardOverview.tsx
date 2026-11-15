@@ -39,19 +39,21 @@ export const DashboardOverview: React.FC<{ metrics: OverviewMetrics }> = ({ metr
 
       {/* Primary KPI Grid (Flagship Minimalist Glass Cards) */}
       <div
+        className="kpi-grid-container"
         style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
           gap: '20px',
         }}
       >
         {/* Card 1: Active Buses */}
         <div
+          className="kpi-metric-card"
           style={{
             backgroundColor: 'rgba(255, 255, 255, 0.02)',
             borderRadius: '16px',
             border: '1px solid rgba(255, 255, 255, 0.06)',
-            padding: '26px 24px',
+            padding: '24px 20px',
             transition: 'border-color 0.2s ease',
           }}
         >
@@ -76,6 +78,7 @@ export const DashboardOverview: React.FC<{ metrics: OverviewMetrics }> = ({ metr
             </svg>
           </div>
           <div
+            className="kpi-metric-value"
             style={{
               marginTop: '16px',
               fontSize: '2.5rem',
@@ -104,11 +107,12 @@ export const DashboardOverview: React.FC<{ metrics: OverviewMetrics }> = ({ metr
 
         {/* Card 2: Total Students */}
         <div
+          className="kpi-metric-card"
           style={{
             backgroundColor: 'rgba(255, 255, 255, 0.02)',
             borderRadius: '16px',
             border: '1px solid rgba(255, 255, 255, 0.06)',
-            padding: '26px 24px',
+            padding: '24px 20px',
           }}
         >
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -132,6 +136,7 @@ export const DashboardOverview: React.FC<{ metrics: OverviewMetrics }> = ({ metr
             </svg>
           </div>
           <div
+            className="kpi-metric-value"
             style={{
               marginTop: '16px',
               fontSize: '2.5rem',
@@ -150,11 +155,12 @@ export const DashboardOverview: React.FC<{ metrics: OverviewMetrics }> = ({ metr
 
         {/* Card 3: Students Onboard */}
         <div
+          className="kpi-metric-card"
           style={{
             backgroundColor: 'rgba(255, 255, 255, 0.02)',
             borderRadius: '16px',
             border: '1px solid rgba(255, 255, 255, 0.06)',
-            padding: '26px 24px',
+            padding: '24px 20px',
           }}
         >
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -175,6 +181,7 @@ export const DashboardOverview: React.FC<{ metrics: OverviewMetrics }> = ({ metr
             </svg>
           </div>
           <div
+            className="kpi-metric-value"
             style={{
               marginTop: '16px',
               fontSize: '2.5rem',
@@ -193,11 +200,12 @@ export const DashboardOverview: React.FC<{ metrics: OverviewMetrics }> = ({ metr
 
         {/* Card 4: Safety Exceptions */}
         <div
+          className="kpi-metric-card"
           style={{
             backgroundColor: 'rgba(255, 255, 255, 0.02)',
             borderRadius: '16px',
             border: metrics.openExceptions > 0 ? '1px solid rgba(239, 68, 68, 0.3)' : '1px solid rgba(255, 255, 255, 0.06)',
-            padding: '26px 24px',
+            padding: '24px 20px',
           }}
         >
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -220,6 +228,7 @@ export const DashboardOverview: React.FC<{ metrics: OverviewMetrics }> = ({ metr
             </svg>
           </div>
           <div
+            className="kpi-metric-value"
             style={{
               marginTop: '16px',
               fontSize: '2.5rem',
@@ -245,9 +254,10 @@ export const DashboardOverview: React.FC<{ metrics: OverviewMetrics }> = ({ metr
 
       {/* Secondary Status & Telematics Grid */}
       <div
+        className="secondary-grid-container"
         style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
           gap: '24px',
         }}
       >
