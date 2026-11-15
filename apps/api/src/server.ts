@@ -99,7 +99,7 @@ export function createServices(options?: CreateServicesOptions): AppServices {
 
   if (options?.container) {
     container = options.container;
-  } else if (options?.useSupabase || supabaseClient || process.env.NODE_ENV === 'production') {
+  } else if (options?.useSupabase || supabaseClient || process.env.NODE_ENV === 'production' || process.env.SUPABASE_URL) {
     if (!supabaseClient) {
       const url = process.env.SUPABASE_URL || '';
       const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_ANON_KEY || '';
@@ -184,7 +184,7 @@ export function createServices(options?: CreateServicesOptions): AppServices {
   const aiProvider = process.env.GROQ_API_KEY
     ? new GroqAIProvider({
         apiKey: process.env.GROQ_API_KEY,
-        model: process.env.GROQ_MODEL || 'llama-3.3-70b-versatile',
+        model: process.env.GROQ_MODEL || 'openai/gpt-oss-120b',
       })
     : new MockAIProvider();
 

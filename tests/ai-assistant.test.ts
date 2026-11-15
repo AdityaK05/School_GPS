@@ -296,7 +296,7 @@ describe('Groq AI Parent Transport Assistant — Safety & Isolation Tests', () =
 
     const bodyText = await res.text();
     expect(bodyText).not.toContain('gsk_');
-    expect(bodyText).not.toContain('llama-3.3-70b-versatile');
+    expect(bodyText).not.toContain('openai/gpt-oss-120b');
     expect(bodyText).not.toContain('groq');
   });
 });

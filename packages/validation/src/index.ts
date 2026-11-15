@@ -14,7 +14,7 @@ export const ConfigSchema = z.object({
   CORS_ORIGIN: z.string().default('*'),
   // Groq AI Transport Assistant
   GROQ_API_KEY: z.string().optional(),
-  GROQ_MODEL: z.string().default('llama-3.3-70b-versatile'),
+  GROQ_MODEL: z.string().default('openai/gpt-oss-120b'),
   AI_ENABLED: z.coerce.boolean().default(true),
 });
 

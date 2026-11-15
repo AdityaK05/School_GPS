@@ -1,3 +1,6 @@
+import dotenv from 'dotenv';
+dotenv.config();
+
 import { createServer } from './server';
 import { logger } from '@school-transport-platform/utils';
 

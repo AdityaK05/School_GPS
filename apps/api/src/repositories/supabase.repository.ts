@@ -668,7 +668,7 @@ export class SupabaseStudentRepository implements IStudentRepository {
 
   async findGuardiansByStudent(studentId: string): Promise<Guardian[]> {
     const { data, error } = await this.client
-      .from('student_guardians')
+      .from('guardians')
       .select('*')
       .eq('student_id', studentId);
     if (error) throw new Error(`Supabase error findGuardiansByStudent: ${error.message}`);
@@ -683,7 +683,7 @@ export class SupabaseStudentRepository implements IStudentRepository {
 
   async findStudentsByGuardianUser(userId: string): Promise<Student[]> {
     const { data: bindings, error } = await this.client
-      .from('student_guardians')
+      .from('guardians')
       .select('student_id')
       .eq('user_id', userId);
     if (error) throw new Error(`Supabase error findStudentsByGuardianUser: ${error.message}`);

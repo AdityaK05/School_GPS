@@ -14,7 +14,7 @@ export class GroqAIProvider implements IAIProvider {
 
   constructor(cfg: GroqProviderConfig = {}) {
     this.apiKey = cfg.apiKey || process.env.GROQ_API_KEY;
-    this.model = cfg.model || process.env.GROQ_MODEL || 'llama-3.3-70b-versatile';
+    this.model = cfg.model || process.env.GROQ_MODEL || 'openai/gpt-oss-120b';
     this.timeoutMs = cfg.timeoutMs || 15000;
   }
 

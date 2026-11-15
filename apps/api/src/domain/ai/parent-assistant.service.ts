@@ -174,11 +174,20 @@ export class ParentAssistantService {
 
   // 2. Authorize parent access to a child
   private async getAuthorizedStudents(parentUserId: string, schoolId?: string) {
-    let students = await this.container.studentRepo.findStudentsByGuardianUser(parentUserId);
-    if (students.length === 0 && schoolId) {
-      students = await this.container.studentRepo.findBySchool(schoolId);
+    let students: any[] = [];
+    try {
+      students = await this.container.studentRepo.findStudentsByGuardianUser(parentUserId);
+    } catch (e: any) {
+      console.warn('findStudentsByGuardianUser failed, falling back:', e.message);
     }
-    return students;
+    if ((!students || students.length === 0) && schoolId) {
+      try {
+        students = await this.container.studentRepo.findBySchool(schoolId);
+      } catch (e: any) {
+        console.warn('findBySchool failed:', e.message);
+      }
+    }
+    return students || [];
   }
 
   private async resolveTargetStudentId(
