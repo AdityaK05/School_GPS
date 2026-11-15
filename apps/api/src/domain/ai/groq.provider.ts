@@ -29,7 +29,12 @@ export class GroqAIProvider implements IAIProvider {
     const payload: any = {
       model: this.model,
       messages: messages.map((m) => {
-        const msg: any = { role: m.role, content: m.content ?? '' };
+        const msg: any = { role: m.role };
+        if (m.content !== null && m.content !== undefined) {
+          msg.content = m.content;
+        } else if (!m.tool_calls) {
+          msg.content = '';
+        }
         if (m.name) msg.name = m.name;
         if (m.tool_call_id) msg.tool_call_id = m.tool_call_id;
         if (m.tool_calls) msg.tool_calls = m.tool_calls;

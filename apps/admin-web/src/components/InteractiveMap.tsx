@@ -182,20 +182,21 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
 
     let tileUrl: string;
     let options: any;
+    const tilePane = map.getPane('tilePane');
 
     if (mode === 'streets') {
-      // CartoDB Voyager — Crisp daylight streets, crossOrigin enabled, buffer cached
-      tileUrl = 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png';
+      // OpenStreetMap Standard — 100% Free, Zero API Key, Zero Watermark
+      tileUrl = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
       options = {
         maxZoom: 19,
-        subdomains: 'abcd',
         crossOrigin: true,
         keepBuffer: 8,
         updateWhenZooming: false,
-        attribution: '&copy; CartoDB &copy; OpenStreetMap',
+        attribution: '&copy; OpenStreetMap contributors',
       };
+      if (tilePane) tilePane.style.filter = 'none';
     } else if (mode === 'satellite') {
-      // ESRI World Imagery — High resolution global satellite tiles
+      // ESRI World Imagery — Ultra-high resolution global satellite, Zero API Key
       tileUrl = 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}';
       options = {
         maxZoom: 19,
@@ -203,17 +204,18 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
         updateWhenZooming: false,
         attribution: '&copy; ESRI',
       };
+      if (tilePane) tilePane.style.filter = 'none';
     } else {
-      // Dark Matter — Default executive night aesthetic
-      tileUrl = 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png';
+      // Night Mode — OpenStreetMap with executive dark styling, Zero API Key, Zero Watermark
+      tileUrl = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
       options = {
         maxZoom: 19,
-        subdomains: 'abcd',
         crossOrigin: true,
         keepBuffer: 8,
         updateWhenZooming: false,
-        attribution: '&copy; CartoDB &copy; OpenStreetMap',
+        attribution: '&copy; OpenStreetMap contributors',
       };
+      if (tilePane) tilePane.style.filter = 'invert(100%) hue-rotate(180deg) brightness(85%) contrast(92%)';
     }
 
     const tileLayer = L.tileLayer(tileUrl, options);

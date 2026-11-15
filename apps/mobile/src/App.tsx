@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   TripHeaderCard,
   ScanFeedbackCard,
@@ -14,7 +14,7 @@ import {
 import { ScanFeedback } from './services/attendant.service';
 
 export const App: React.FC = () => {
-  const [mode, setMode] = useState<'attendant' | 'parent'>('parent');
+  const [mode, setMode] = useState<'parent' | 'attendant'>('parent');
   const [isOnline, setIsOnline] = useState<boolean>(true);
   const [gpsFresh, setGpsFresh] = useState<boolean>(true);
   const [pendingQueueCount, setPendingQueueCount] = useState<number>(0);
@@ -22,24 +22,40 @@ export const App: React.FC = () => {
   // Attendant State
   const [feedback, setFeedback] = useState<ScanFeedback>({
     type: 'SUCCESS',
-    message: 'System Ready. Scan Student RFID Card.',
-    timestamp: new Date().toISOString(),
+    message: 'NFC/RFID Scanner Active & Ready.',
+    timestamp: new Date().toLocaleTimeString(),
   });
 
   const [students, setStudents] = useState<ManifestStudentItem[]>([
     {
-      studentId: 'std_001',
+      studentId: 'c1111111-1111-1111-1111-111111111101',
       studentName: 'Aarav Sharma',
       admissionNumber: 'ADM-2024-001',
-      expectedStopName: 'Main Gate Stop #2',
+      expectedStopName: 'Stop 1: Sector 62 Metro Gate #2',
       boardingStatus: 'BOARDED',
       exitStatus: 'PENDING',
     },
     {
-      studentId: 'std_002',
+      studentId: 'c1111111-1111-1111-1111-111111111102',
       studentName: 'Diya Sharma',
       admissionNumber: 'ADM-2024-002',
-      expectedStopName: 'Sector 62 Metro',
+      expectedStopName: 'Stop 2: Shipra Sun City Gate #4',
+      boardingStatus: 'PENDING',
+      exitStatus: 'PENDING',
+    },
+    {
+      studentId: 'c1111111-1111-1111-1111-111111111104',
+      studentName: 'Ananya Verma',
+      admissionNumber: 'ADM-2024-004',
+      expectedStopName: 'Stop 2: Shipra Sun City Gate #4',
+      boardingStatus: 'PENDING',
+      exitStatus: 'PENDING',
+    },
+    {
+      studentId: 'c1111111-1111-1111-1111-111111111105',
+      studentName: 'Rohan Gupta',
+      admissionNumber: 'ADM-2024-005',
+      expectedStopName: 'Stop 3: Indirapuram Habitat Centre',
       boardingStatus: 'PENDING',
       exitStatus: 'PENDING',
     },
@@ -49,8 +65,8 @@ export const App: React.FC = () => {
   const [childrenList, setChildrenList] = useState<ChildOverviewData[]>([
     {
       student: {
-        id: 'std_001',
-        schoolId: 'sch_001',
+        id: 'c1111111-1111-1111-1111-111111111101',
+        schoolId: '11111111-1111-1111-1111-111111111111',
         admissionNumber: 'ADM-2024-001',
         firstName: 'Aarav',
         lastName: 'Sharma',
@@ -60,14 +76,14 @@ export const App: React.FC = () => {
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       },
-      busNumber: 'Bus 12 (KA-01-EXP-9999)',
+      busNumber: 'Bus 12 (UP-16-BT-9912)',
       routeName: 'North Corridor Express',
       stopName: 'Sector 62 Metro Gate #2',
-      journeyState: 'ONBOARD',
-      etaMinutes: 12,
+      journeyState: 'BOARDED',
+      etaMinutes: 11,
       lastKnownLocation: {
-        latitude: 12.9716,
-        longitude: 77.5946,
+        latitude: 28.6320,
+        longitude: 77.3680,
         recordedAt: new Date().toISOString(),
         isLive: true,
       },
@@ -76,8 +92,8 @@ export const App: React.FC = () => {
     },
     {
       student: {
-        id: 'std_002',
-        schoolId: 'sch_001',
+        id: 'c1111111-1111-1111-1111-111111111102',
+        schoolId: '11111111-1111-1111-1111-111111111111',
         admissionNumber: 'ADM-2024-002',
         firstName: 'Diya',
         lastName: 'Sharma',
@@ -87,14 +103,14 @@ export const App: React.FC = () => {
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       },
-      busNumber: 'Bus 08 (KA-01-EXP-8888)',
-      routeName: 'East Wing Shuttle',
-      stopName: 'Park Avenue Block B',
+      busNumber: 'Bus 12 (UP-16-BT-9912)',
+      routeName: 'North Corridor Express',
+      stopName: 'Shipra Sun City Gate #4',
       journeyState: 'EXPECTED',
-      etaMinutes: 25,
+      etaMinutes: 20,
       lastKnownLocation: {
-        latitude: 12.9812,
-        longitude: 77.6045,
+        latitude: 28.6320,
+        longitude: 77.3680,
         recordedAt: new Date().toISOString(),
         isLive: true,
       },
@@ -103,22 +119,22 @@ export const App: React.FC = () => {
     },
   ]);
 
-  const [selectedChildId, setSelectedChildId] = useState<string>('std_001');
+  const [selectedChildId, setSelectedChildId] = useState<string>('c1111111-1111-1111-1111-111111111101');
 
   const [history, setHistory] = useState<JourneyHistoryItem[]>([
     {
-      date: '15 Nov 2026',
+      date: 'Today, Morning',
+      busNumber: 'Bus 12',
+      routeName: 'North Corridor Express',
+      boardingTime: '07:44 AM',
+      exitTime: 'Pending',
+      status: 'In Transit',
+    },
+    {
+      date: 'Yesterday',
       busNumber: 'Bus 12',
       routeName: 'North Corridor Express',
       boardingTime: '07:42 AM',
-      exitTime: '08:19 AM',
-      status: 'Completed',
-    },
-    {
-      date: '14 Nov 2026',
-      busNumber: 'Bus 12',
-      routeName: 'North Corridor Express',
-      boardingTime: '07:40 AM',
       exitTime: '08:18 AM',
       status: 'Completed',
     },
@@ -127,18 +143,18 @@ export const App: React.FC = () => {
   const [notifications, setNotifications] = useState<ParentNotificationItem[]>([
     {
       id: 'notif_1',
-      title: 'Bus Approaching Stop',
-      body: 'Bus 12 is within 2 km of Sector 62 Metro Gate #2 (ETA: 4 min).',
+      title: 'Bus Approaching Designated Stop',
+      body: 'Bus 12 is within 1.5 km of Sector 62 Metro Gate #2 (ETA: ~11 min).',
       type: 'BUS_APPROACHING',
       timestamp: new Date().toISOString(),
       read: false,
     },
     {
       id: 'notif_2',
-      title: 'Boarding Confirmed',
-      body: 'Aarav Sharma successfully boarded Bus 12 via verified RFID scan.',
+      title: 'RFID Boarding Verified',
+      body: 'Aarav Sharma safely boarded Bus 12 via hardware card tap.',
       type: 'BOARDING',
-      timestamp: new Date(Date.now() - 3600000).toISOString(),
+      timestamp: new Date(Date.now() - 1800000).toISOString(),
       read: true,
     },
   ]);
@@ -146,146 +162,145 @@ export const App: React.FC = () => {
   return (
     <div
       style={{
-        maxWidth: '480px',
-        margin: '0 auto',
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'flex-start',
         minHeight: '100vh',
         backgroundColor: '#09090b',
-        color: '#f8fafc',
-        fontFamily: "'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
-        display: 'flex',
-        flexDirection: 'column',
+        padding: '0',
+        margin: '0',
+        boxSizing: 'border-box',
       }}
     >
-      {/* Top Mobile Status Header */}
-      <header
+      <div
         style={{
-          padding: '14px 18px',
-          backgroundColor: '#121215',
+          width: '100%',
+          maxWidth: '430px',
+          minHeight: '100vh',
+          backgroundColor: '#09090b',
+          color: '#f8fafc',
+          fontFamily: "'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
           display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          borderBottom: '1px solid #27272a',
+          flexDirection: 'column',
+          boxShadow: '0 0 50px rgba(0, 0, 0, 0.8)',
+          boxSizing: 'border-box',
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <div
-            style={{
-              width: '8px',
-              height: '8px',
-              borderRadius: '50%',
-              backgroundColor: '#10b981',
-              boxShadow: '0 0 8px #10b981',
-            }}
-          />
-          <span style={{ fontSize: '13px', fontWeight: 600, color: '#f4f4f5' }}>
-            {mode === 'attendant' ? 'Attendant Portal' : 'Parent Portal'}
-          </span>
-        </div>
-
-        <button
-          onClick={() => setMode(mode === 'attendant' ? 'parent' : 'attendant')}
+        {/* Mobile Status Bar Emulation */}
+        <div
           style={{
-            padding: '5px 12px',
-            backgroundColor: 'rgba(255, 255, 255, 0.05)',
-            color: '#a1a1aa',
-            border: '1px solid rgba(255, 255, 255, 0.1)',
-            borderRadius: '6px',
+            padding: '12px 18px 6px 18px',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
             fontSize: '11px',
-            fontWeight: 500,
-            cursor: 'pointer',
+            color: '#71717a',
+            fontWeight: 700,
           }}
         >
-          Switch to {mode === 'attendant' ? 'Parent' : 'Attendant'}
-        </button>
-      </header>
+          <span>9:41</span>
+          <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+            <span>5G</span>
+            <span>● 100%</span>
+          </div>
+        </div>
 
-      {/* Main Body */}
-      <main style={{ flex: 1, padding: '16px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
-        {mode === 'parent' ? (
-          <ParentAppView
-            childrenList={childrenList}
-            selectedChildId={selectedChildId}
-            onSelectChild={setSelectedChildId}
-            history={history}
-            notifications={notifications}
-            onRefresh={() => {}}
-          />
-        ) : (
-          <>
-            {/* Trip Header Status Card */}
-            <TripHeaderCard
-              busNumber="BUS-04"
-              routeName="Morning Route North-1"
-              currentStopName="Main Gate Stop #2"
-              onboardCount={students.filter((s) => s.boardingStatus === 'BOARDED' && s.exitStatus !== 'EXITED').length}
-              totalExpected={students.length}
-              isOnline={isOnline}
-              gpsFresh={gpsFresh}
+        {/* Top Header & Role Switcher */}
+        <header
+          style={{
+            padding: '12px 18px',
+            backgroundColor: '#121217',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <div
+              style={{
+                width: '8px',
+                height: '8px',
+                borderRadius: '50%',
+                backgroundColor: '#10b981',
+                boxShadow: '0 0 8px #10b981',
+              }}
             />
+            <span style={{ fontSize: '13px', fontWeight: 800, color: '#ffffff', letterSpacing: '-0.01em' }}>
+              Aegis Mobile {mode === 'attendant' ? '• Attendant' : '• Guardian'}
+            </span>
+          </div>
 
-            {/* Real-time Scan Feedback Banner */}
-            <ScanFeedbackCard feedback={feedback} />
+          <button
+            onClick={() => setMode(mode === 'attendant' ? 'parent' : 'attendant')}
+            style={{
+              padding: '6px 12px',
+              backgroundColor: '#18181b',
+              color: '#38bdf8',
+              border: '1px solid rgba(56, 189, 248, 0.3)',
+              borderRadius: '8px',
+              fontSize: '11px',
+              fontWeight: 700,
+              cursor: 'pointer',
+              transition: 'all 0.15s ease',
+            }}
+          >
+            {mode === 'attendant' ? 'Parent View' : 'Attendant'} ⇄
+          </button>
+        </header>
 
-            {/* Offline Queue Indicator & Action */}
-            {!isOnline && (
-              <div
-                style={{
-                  padding: '10px 14px',
-                  backgroundColor: 'rgba(245, 158, 11, 0.15)',
-                  color: '#fbbf24',
-                  borderRadius: '8px',
-                  border: '1px solid rgba(245, 158, 11, 0.3)',
-                  fontSize: '13px',
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                }}
-              >
-                <span>Offline Scans Queued: {pendingQueueCount}</span>
-                <button
-                  onClick={() => {
-                    setIsOnline(true);
-                    setPendingQueueCount(0);
-                  }}
-                  style={{
-                    padding: '4px 10px',
-                    backgroundColor: '#f59e0b',
-                    color: '#000',
-                    border: 'none',
-                    borderRadius: '4px',
-                    fontWeight: 600,
-                    cursor: 'pointer',
-                  }}
-                >
-                  Sync Now
-                </button>
-              </div>
-            )}
-
-            {/* Student Manifest Roster */}
-            <div style={{ flex: 1 }}>
-              <ManifestList
-                students={students}
-                onManualOverride={(studentId: string, action: 'BOARD' | 'EXIT') => {
-                  setStudents((prev) =>
-                    prev.map((s) => {
-                      if (s.studentId !== studentId) return s;
-                      if (action === 'BOARD') return { ...s, boardingStatus: 'BOARDED' };
-                      if (action === 'EXIT') return { ...s, exitStatus: 'EXITED' };
-                      return s;
-                    })
-                  );
-                  setFeedback({
-                    type: 'SUCCESS',
-                    message: `Manual Override: ${action} recorded for student ${studentId}`,
-                    timestamp: new Date().toISOString(),
-                  });
-                }}
+        {/* Main Content Body */}
+        <main style={{ flex: 1, padding: '16px', display: 'flex', flexDirection: 'column', gap: '14px', boxSizing: 'border-box' }}>
+          {mode === 'parent' ? (
+            <ParentAppView
+              childrenList={childrenList}
+              selectedChildId={selectedChildId}
+              onSelectChild={setSelectedChildId}
+              history={history}
+              notifications={notifications}
+              onRefresh={() => {}}
+            />
+          ) : (
+            <>
+              {/* Trip Header Status Card */}
+              <TripHeaderCard
+                busNumber="BUS-12"
+                routeName="North Corridor Express"
+                currentStopName="Sector 62 Metro Gate #2"
+                onboardCount={students.filter((s) => s.boardingStatus === 'BOARDED' && s.exitStatus !== 'EXITED').length}
+                totalExpected={students.length}
+                isOnline={isOnline}
+                gpsFresh={gpsFresh}
               />
-            </div>
-          </>
-        )}
-      </main>
+
+              {/* Real-time Scan Feedback Banner */}
+              <ScanFeedbackCard feedback={feedback} />
+
+              {/* Student Manifest Roster */}
+              <div style={{ flex: 1 }}>
+                <ManifestList
+                  students={students}
+                  onManualOverride={(studentId: string, action: 'BOARD' | 'EXIT') => {
+                    setStudents((prev) =>
+                      prev.map((s) => {
+                        if (s.studentId !== studentId) return s;
+                        if (action === 'BOARD') return { ...s, boardingStatus: 'BOARDED' };
+                        if (action === 'EXIT') return { ...s, exitStatus: 'EXITED' };
+                        return s;
+                      })
+                    );
+                    setFeedback({
+                      type: 'SUCCESS',
+                      message: `Manual Override: ${action} recorded for student ${studentId}`,
+                      timestamp: new Date().toLocaleTimeString(),
+                    });
+                  }}
+                />
+              </div>
+            </>
+          )}
+        </main>
+      </div>
     </div>
   );
 };

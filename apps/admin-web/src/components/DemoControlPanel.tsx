@@ -55,6 +55,13 @@ export const DemoControlPanel: React.FC<DemoControlPanelProps> = ({
     }
   };
 
+  // Helper to generate RFC4122 compliant UUID v4 for API idempotency keys
+  const generateUuid = () => 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+    const r = (Math.random() * 16) | 0;
+    const v = c === 'x' ? r : (r & 0x3) | 0x8;
+    return v.toString(16);
+  });
+
   // 1. Start Trip
   const handleStartTrip = () => {
     executeApi('Start Trip', '/api/v1/trips/88888888-8888-8888-8888-888888888801/start', 'POST');
@@ -77,7 +84,7 @@ export const DemoControlPanel: React.FC<DemoControlPanelProps> = ({
       longitude: pt.lng,
       speed: pt.speed,
       heading: 84.0,
-      timestamp: new Date().toISOString(),
+      recordedAt: new Date().toISOString(),
     });
   };
 
@@ -89,8 +96,9 @@ export const DemoControlPanel: React.FC<DemoControlPanelProps> = ({
       stopId: 'b1111111-1111-1111-1111-111111111101',
       eventType: 'BUS_REACHED_STOP',
       eventTimestamp: new Date().toISOString(),
-      idempotencyKey: `reach_${Date.now()}`,
-      source: 'GPS_GEOFENCE',
+      idempotencyKey: generateUuid(),
+      source: 'GPS',
+      deviceId: 'GPS-BUS-12-TELT',
     });
   };
 
@@ -136,7 +144,7 @@ export const DemoControlPanel: React.FC<DemoControlPanelProps> = ({
       latitude: 28.6320,
       longitude: 77.3680,
       speed: 0,
-      timestamp: staleTime,
+      recordedAt: staleTime,
     });
   };
 
@@ -147,7 +155,7 @@ export const DemoControlPanel: React.FC<DemoControlPanelProps> = ({
       latitude: 28.6360,
       longitude: 77.3715,
       speed: 38,
-      timestamp: new Date().toISOString(),
+      recordedAt: new Date().toISOString(),
     });
   };
 
