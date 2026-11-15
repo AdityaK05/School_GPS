@@ -9,6 +9,7 @@ import { ExceptionCenterView } from './components/ExceptionCenterView';
 import { AuditLogView } from './components/AuditLogView';
 import { ParentPortalView } from './components/ParentPortalView';
 import { AttendantPortalView } from './components/AttendantPortalView';
+import { DemoControlPanel } from './components/DemoControlPanel';
 
 type Tab = 'overview' | 'fleet' | 'trips' | 'students' | 'exceptions' | 'audit';
 type PortalMode = 'admin' | 'parent' | 'attendant';
@@ -16,9 +17,10 @@ type PortalMode = 'admin' | 'parent' | 'attendant';
 export const App: React.FC = () => {
   const [portalMode, setPortalMode] = useState<PortalMode>('admin');
   const [activeTab, setActiveTab] = useState<Tab>('overview');
-  const [schoolId, setSchoolId] = useState<string>('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa');
+  const [showDemoPanel, setShowDemoPanel] = useState<boolean>(false);
+  const [schoolId, setSchoolId] = useState<string>('11111111-1111-1111-1111-111111111111');
   const [authToken, setAuthToken] = useState<string>(
-    'test-token:usr_admin:SCHOOL_ADMIN:aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa'
+    'test-token:22222222-2222-2222-2222-222222222222:SCHOOL_ADMIN:11111111-1111-1111-1111-111111111111'
   );
 
   const [metrics, setMetrics] = useState<OverviewMetrics>({
@@ -38,9 +40,8 @@ export const App: React.FC = () => {
   const [isLoading, setIsLoading] = useState<boolean>(false);
 
   const apiBaseUrl =
-    (typeof window !== 'undefined' && (window as any).__API_BASE_URL__) ||
-    (typeof process !== 'undefined' && process.env?.VITE_API_BASE_URL) ||
-    (typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000');
+    (import.meta.env?.VITE_API_BASE_URL as string) ||
+    'https://school-gps-api.onrender.com';
 
   const apiClient = new ApiClient({
     baseUrl: apiBaseUrl,
@@ -330,6 +331,29 @@ export const App: React.FC = () => {
             {isLoading ? 'Syncing...' : 'Sync'}
           </button>
 
+          {/* Operator Console Trigger Pill */}
+          <button
+            onClick={() => setShowDemoPanel(!showDemoPanel)}
+            style={{
+              padding: '7px 14px',
+              backgroundColor: showDemoPanel ? 'rgba(56, 189, 248, 0.2)' : 'rgba(56, 189, 248, 0.08)',
+              color: '#38bdf8',
+              border: `1px solid ${showDemoPanel ? '#38bdf8' : 'rgba(56, 189, 248, 0.3)'}`,
+              borderRadius: '8px',
+              cursor: 'pointer',
+              fontWeight: 700,
+              fontSize: '0.8rem',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              transition: 'all 0.15s ease',
+            }}
+            title="Open Demo Operator Control Panel"
+          >
+            <span>🎛️</span>
+            <span>Demo Console</span>
+          </button>
+
           {/* Admin Avatar */}
           <div
             style={{
@@ -460,6 +484,13 @@ export const App: React.FC = () => {
         <span>Aegis Fleet Platform &bull; Student Safety &amp; Accountability</span>
         <span>Telemetry Sync Active &bull; Zero Compromise</span>
       </footer>
+
+      {/* Floating Demo Operator Control Panel */}
+      <DemoControlPanel
+        isOpen={showDemoPanel}
+        onClose={() => setShowDemoPanel(false)}
+        onActionComplete={refreshData}
+      />
     </div>
   );
 };

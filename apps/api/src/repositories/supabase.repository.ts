@@ -438,7 +438,7 @@ export class SupabaseTripRepository implements ITripRepository {
       .from('trips')
       .select('*')
       .eq('bus_id', busId)
-      .eq('status', 'IN_PROGRESS')
+      .in('status', ['STARTED', 'IN_PROGRESS'])
       .maybeSingle();
     if (error) throw new Error(`Supabase error findActiveTripByBus: ${error.message}`);
     if (!data) return null;

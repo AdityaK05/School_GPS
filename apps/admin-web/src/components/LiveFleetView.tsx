@@ -27,20 +27,20 @@ export const LiveFleetView: React.FC<{ buses: LiveBusItem[] }> = ({ buses }) => 
     ? buses.map((b) => ({
         id: b.busId,
         label: `${b.fleetNumber} (${b.registrationNumber})`,
-        latitude: b.latitude || 12.9716,
-        longitude: b.longitude || 77.5946,
+        latitude: b.latitude || 28.6280,
+        longitude: b.longitude || 77.3649,
         type: 'bus' as const,
-        speed: b.speed || 42,
+        speed: b.speed || 38,
         isLive: getGpsStatus(b.lastRecordedAt) === 'LIVE',
       }))
     : [
         {
           id: 'bus_demo_01',
-          label: 'BUS-01 (KA-01-EXP-9999)',
-          latitude: 12.9716,
-          longitude: 77.5946,
+          label: 'BUS-12 (UP-16-BT-9912)',
+          latitude: 28.6280,
+          longitude: 77.3649,
           type: 'bus' as const,
-          speed: 42,
+          speed: 38,
           isLive: true,
         },
       ];

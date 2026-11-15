@@ -28,6 +28,9 @@ interface InteractiveMapProps {
   zoom?: number;
   height?: string;
   showHud?: boolean;
+  busSpeed?: number;
+  busHeading?: number;
+  busLive?: boolean;
   onMarkerClick?: (marker: MapMarker) => void;
 }
 
@@ -35,38 +38,39 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
   markers = [],
   routePath,
   activeBusId,
-  center = { latitude: 12.9716, longitude: 77.5946 },
+  center = { latitude: 28.6280, longitude: 77.3649 }, // Default: Noida Sector 62 / NCR Campus Corridor
   zoom = 14,
   height = '480px',
   showHud = true,
+  busSpeed = 38,
+  busHeading = 84,
+  busLive = true,
   onMarkerClick,
 }) => {
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<any>(null);
   const markersLayerRef = useRef<any>(null);
   const routeLayerRef = useRef<any>(null);
-  const userMarkerRef = useRef<any>(null);
-  const userAccuracyCircleRef = useRef<any>(null);
 
-  const [tileMode, setTileMode] = useState<'dark' | 'satellite' | 'streets'>('dark');
+  const [tileMode, setTileMode] = useState<'dark' | 'streets' | 'satellite'>('dark');
   const [userCoords, setUserCoords] = useState<{ latitude: number; longitude: number; accuracy?: number } | null>(null);
-  const [geoStatus, setGeoStatus] = useState<'requesting' | 'acquired' | 'denied' | 'idle'>('requesting');
-  const [activeBusLocation, setActiveBusLocation] = useState<{ latitude: number; longitude: number; speed: number }>({
-    latitude: 12.9716,
-    longitude: 77.5946,
-    speed: 42,
-  });
+  const [geoStatus, setGeoStatus] = useState<'requesting' | 'acquired' | 'denied' | 'idle'>('idle');
 
-  // Default route points (Sector 62 to School Main Campus)
+  // Authoritative NCR / Sector 62 to School Main Campus stops
   const waypoints: RouteWaypoint[] = routePath && routePath.length > 0 ? routePath : [
-    { latitude: 12.9650, longitude: 77.5850, name: 'Stop 1 - Green Valley' },
-    { latitude: 12.9680, longitude: 77.5900, name: 'Metro Crossing' },
-    { latitude: 12.9716, longitude: 77.5946, name: 'Stop 2 - Sector 62 Gate' },
-    { latitude: 12.9760, longitude: 77.6010, name: 'Ring Road Junction' },
-    { latitude: 12.9820, longitude: 77.6080, name: 'Stop 3 - School Main Campus' },
+    { latitude: 28.6280, longitude: 77.3649, name: 'Stop 1: Sector 62 Metro Gate #2' },
+    { latitude: 28.6360, longitude: 77.3715, name: 'Stop 2: Shipra Sun City Gate #4' },
+    { latitude: 28.6410, longitude: 77.3780, name: 'Stop 3: Indirapuram Habitat Centre' },
+    { latitude: 28.6495, longitude: 77.3890, name: 'Terminus: DPIS Main Campus' },
   ];
 
-  // 1. Detect Real Live User Location
+  // Bus Location (falls back to stop 1 or passed markers)
+  const busMarker = markers.find((m) => m.type === 'bus');
+  const busLocation = busMarker
+    ? { latitude: busMarker.latitude, longitude: busMarker.longitude }
+    : { latitude: 28.6320, longitude: 77.3680 };
+
+  // 1. Detect Real Live User Location (HTML5 Geolocation)
   useEffect(() => {
     if (!navigator.geolocation) {
       setGeoStatus('denied');
@@ -79,26 +83,12 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
         const { latitude, longitude, accuracy } = pos.coords;
         setUserCoords({ latitude, longitude, accuracy });
         setGeoStatus('acquired');
-
-        // Dynamically shift bus near user's real neighborhood for hyper-realistic demo if first lock
-        setActiveBusLocation((prev) => {
-          if (prev.latitude === 12.9716 && prev.longitude === 77.5946) {
-            return {
-              latitude: latitude + 0.003,
-              longitude: longitude + 0.004,
-              speed: 38,
-            };
-          }
-          return prev;
-        });
       },
       (err) => {
-        console.warn('Geolocation access not granted or unavailable:', err.message);
+        console.warn('Geolocation access not granted, using Delhi NCR default coordinates:', err.message);
         setGeoStatus('denied');
-        // Fallback default coordinates
-        setUserCoords({ latitude: 12.9716, longitude: 77.5946, accuracy: 25 });
       },
-      { enableHighAccuracy: true, timeout: 10000, maximumAge: 5000 }
+      { enableHighAccuracy: true, timeout: 8000, maximumAge: 10000 }
     );
 
     return () => {
@@ -122,9 +112,7 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
         mapInstanceRef.current = null;
       }
 
-      const initialCenter = userCoords
-        ? [userCoords.latitude, userCoords.longitude]
-        : [center.latitude, center.longitude];
+      const initialCenter = [center.latitude, center.longitude];
 
       const map = L.map(mapContainerRef.current, {
         center: initialCenter,
@@ -133,12 +121,12 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
         attributionControl: false,
       });
 
-      // Add Custom Top-Right Zoom Control
+      // Custom top-right zoom control
       L.control.zoom({ position: 'topright' }).addTo(map);
 
       // Layer groups
-      const markersLayer = L.layerGroup().addTo(map);
       const routeLayer = L.layerGroup().addTo(map);
+      const markersLayer = L.layerGroup().addTo(map);
 
       mapInstanceRef.current = map;
       markersLayerRef.current = markersLayer;
@@ -146,11 +134,32 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
 
       updateTiles(tileMode);
       renderMapContent();
+
+      // Invalidate size after DOM mount and container layout stabilize to prevent black tile gaps
+      setTimeout(() => {
+        if (mapInstanceRef.current) {
+          mapInstanceRef.current.invalidateSize();
+        }
+      }, 150);
+
+      setTimeout(() => {
+        if (mapInstanceRef.current) {
+          mapInstanceRef.current.invalidateSize();
+        }
+      }, 500);
     };
 
     initMap();
 
+    const handleResize = () => {
+      if (mapInstanceRef.current) {
+        mapInstanceRef.current.invalidateSize();
+      }
+    };
+    window.addEventListener('resize', handleResize);
+
     return () => {
+      window.removeEventListener('resize', handleResize);
       if (checkTimer) clearTimeout(checkTimer);
       if (mapInstanceRef.current) {
         mapInstanceRef.current.remove();
@@ -159,33 +168,55 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
     };
   }, []);
 
-  // 3. Tile Layer Switcher
-  const updateTiles = (mode: 'dark' | 'satellite' | 'streets') => {
+  // 3. Ultra-Reliable Tile Layer Switcher (Zero Black Box Glitches)
+  const updateTiles = (mode: 'dark' | 'streets' | 'satellite') => {
     if (!mapInstanceRef.current || !(window as any).L) return;
     const map = mapInstanceRef.current;
 
-    // Remove existing tile layer
+    // Remove existing tile layers cleanly
     map.eachLayer((layer: any) => {
       if (layer instanceof L.TileLayer) {
         map.removeLayer(layer);
       }
     });
 
-    let tileUrl = 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png';
-    let maxZoom = 20;
+    let tileUrl: string;
+    let options: any;
 
-    if (mode === 'satellite') {
+    if (mode === 'streets') {
+      // CartoDB Voyager — Crisp daylight streets, fast CDN, supports subdomains a,b,c,d
+      tileUrl = 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png';
+      options = {
+        maxZoom: 19,
+        subdomains: 'abcd',
+        attribution: '&copy; CartoDB &copy; OpenStreetMap',
+      };
+    } else if (mode === 'satellite') {
+      // ESRI World Imagery — High resolution global satellite tiles
       tileUrl = 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}';
-      maxZoom = 19;
-    } else if (mode === 'streets') {
-      tileUrl = 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
-      maxZoom = 19;
+      options = {
+        maxZoom: 19,
+        attribution: '&copy; ESRI',
+      };
+    } else {
+      // Dark Matter — Default executive night aesthetic
+      tileUrl = 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png';
+      options = {
+        maxZoom: 19,
+        subdomains: 'abcd',
+        attribution: '&copy; CartoDB &copy; OpenStreetMap',
+      };
     }
 
-    L.tileLayer(tileUrl, {
-      maxZoom,
-      subdomains: 'abcd',
-    }).addTo(map);
+    const tileLayer = L.tileLayer(tileUrl, options);
+    tileLayer.addTo(map);
+
+    // Re-render markers and route on top
+    setTimeout(() => {
+      if (mapInstanceRef.current) {
+        mapInstanceRef.current.invalidateSize();
+      }
+    }, 100);
   };
 
   useEffect(() => {
@@ -202,47 +233,39 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
     markersLayer.clearLayers();
     routeLayer.clearLayers();
 
-    // Route Polyline Points
-    const routePoints = userCoords
-      ? [
-          [userCoords.latitude - 0.006, userCoords.longitude - 0.008],
-          [userCoords.latitude - 0.002, userCoords.longitude - 0.003],
-          [activeBusLocation.latitude, activeBusLocation.longitude],
-          [userCoords.latitude + 0.004, userCoords.longitude + 0.005],
-          [userCoords.latitude + 0.009, userCoords.longitude + 0.012],
-        ]
-      : waypoints.map((w) => [w.latitude, w.longitude]);
+    // Route points from waypoints
+    const routePoints: number[][] = waypoints.map((w) => [w.latitude, w.longitude]);
 
-    // Outer Neon Glow Polyline
+    // Outer neon glow corridor
     L.polyline(routePoints, {
       color: '#38bdf8',
       weight: 8,
-      opacity: 0.35,
+      opacity: 0.3,
       lineCap: 'round',
       lineJoin: 'round',
     }).addTo(routeLayer);
 
-    // Inner Route Polyline
+    // Inner route polyline
     L.polyline(routePoints, {
       color: '#0284c7',
       weight: 3.5,
-      opacity: 0.9,
+      opacity: 0.95,
       dashArray: '6, 6',
     }).addTo(routeLayer);
 
-    // Render Stop Stations with Geofence Rings
-    routePoints.forEach((pt: number[], idx: number) => {
-      const isTerminus = idx === 0 || idx === routePoints.length - 1;
-      const stopName = idx === 0 ? 'Depot Terminal' : idx === routePoints.length - 1 ? 'School Main Campus' : `Transit Stop #${idx}`;
+    // Render Stops with Geofence Rings
+    waypoints.forEach((wp, idx) => {
+      const isTerminus = idx === waypoints.length - 1;
+      const isOrigin = idx === 0;
 
-      // 50m Geofence Buffer Ring
-      L.circle(pt, {
-        radius: 65,
-        color: isTerminus ? '#10b981' : '#38bdf8',
-        weight: 1,
+      // 100m Geofence Buffer Ring
+      L.circle([wp.latitude, wp.longitude], {
+        radius: isTerminus ? 150 : 100,
+        color: isTerminus ? '#10b981' : isOrigin ? '#38bdf8' : '#64748b',
+        weight: 1.5,
         dashArray: '4, 4',
-        fillColor: isTerminus ? 'rgba(16, 185, 129, 0.08)' : 'rgba(56, 189, 248, 0.08)',
-        fillOpacity: 0.15,
+        fillColor: isTerminus ? 'rgba(16, 185, 129, 0.12)' : 'rgba(56, 189, 248, 0.08)',
+        fillOpacity: 0.25,
       }).addTo(routeLayer);
 
       // Stop Icon
@@ -250,114 +273,138 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
         className: 'custom-stop-icon',
         html: `
           <div style="
-            background: #090d16;
-            border: 2px solid ${isTerminus ? '#10b981' : '#38bdf8'};
-            width: 14px;
-            height: 14px;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 28px;
+            height: 28px;
             border-radius: 50%;
-            box-shadow: 0 0 10px ${isTerminus ? 'rgba(16,185,129,0.8)' : 'rgba(56,189,248,0.8)'};
-          "></div>
+            background-color: ${isTerminus ? '#059669' : isOrigin ? '#0284c7' : '#1e293b'};
+            border: 2px solid ${isTerminus ? '#34d399' : '#38bdf8'};
+            box-shadow: 0 0 12px ${isTerminus ? 'rgba(16,185,129,0.5)' : 'rgba(56,189,248,0.5)'};
+            color: #ffffff;
+            font-size: 11px;
+            font-weight: 800;
+          ">
+            ${isTerminus ? '🏫' : idx + 1}
+          </div>
         `,
-        iconSize: [14, 14],
-        iconAnchor: [7, 7],
+        iconSize: [28, 28],
+        iconAnchor: [14, 14],
       });
 
-      const marker = L.marker(pt, { icon: stopIcon }).addTo(markersLayer);
+      const marker = L.marker([wp.latitude, wp.longitude], { icon: stopIcon }).addTo(markersLayer);
       marker.bindPopup(`
-        <div style="font-family: inherit; color: #090d16; padding: 4px;">
-          <strong style="color: ${isTerminus ? '#059669' : '#0284c7'}; font-size: 13px;">${stopName}</strong>
-          <div style="font-size: 11px; color: #64748b; margin-top: 2px;">Assigned Geofence: 50m Active</div>
+        <div style="font-family: inherit; color: #09090b; min-width: 160px; padding: 2px;">
+          <div style="font-size: 11px; font-weight: 700; color: #0284c7; text-transform: uppercase;">
+            ${isTerminus ? 'Terminus Campus' : `Stop #${idx + 1}`}
+          </div>
+          <strong style="font-size: 13px; color: #09090b; display: block; margin-top: 2px;">${wp.name || 'Transit Stop'}</strong>
+          <div style="font-size: 11px; color: #64748b; margin-top: 4px;">
+            Geofence Tolerance: <strong>${isTerminus ? '150m' : '100m'}</strong>
+          </div>
         </div>
       `);
     });
 
-    // Render Live School Bus Vehicle Marker
-    const busPos = [activeBusLocation.latitude, activeBusLocation.longitude];
+    // Render Active Bus Marker
+    const busPos = [busLocation.latitude, busLocation.longitude];
     const busIcon = L.divIcon({
       className: 'custom-bus-icon',
       html: `
-        <div style="position: relative; display: flex; align-items: center; justify-content: center; width: 42px; height: 42px;">
+        <div style="
+          position: relative;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          width: 44px;
+          height: 44px;
+        ">
           <div style="
             position: absolute;
-            width: 36px;
-            height: 36px;
+            width: 42px;
+            height: 42px;
             border-radius: 50%;
             background: rgba(16, 185, 129, 0.25);
-            animation: pulse-ring 1.8s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
+            animation: pulse-ring 2s infinite;
           "></div>
           <div style="
-            width: 28px;
-            height: 28px;
+            width: 32px;
+            height: 32px;
             border-radius: 50%;
-            background: #10b981;
+            background: #059669;
             border: 2px solid #ffffff;
+            box-shadow: 0 0 16px rgba(16, 185, 129, 0.9);
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 14px;
-            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.6);
-          ">🚌</div>
+            font-size: 16px;
+          ">
+            🚌
+          </div>
         </div>
       `,
-      iconSize: [42, 42],
-      iconAnchor: [21, 21],
+      iconSize: [44, 44],
+      iconAnchor: [22, 22],
     });
 
-    const busMarker = L.marker(busPos, { icon: busIcon }).addTo(markersLayer);
-    busMarker.bindPopup(`
-      <div style="font-family: inherit; color: #090d16; min-width: 170px; padding: 4px;">
-        <strong style="font-size: 14px; color: #059669;">Bus 12 (KA-01-EXP-9999)</strong>
-        <div style="font-size: 11px; color: #10b981; font-weight: 700; margin-top: 2px;">● LIVE GPS (&le;60s)</div>
-        <div style="font-size: 11px; color: #475569; margin-top: 4px;">Speed: <strong>${activeBusLocation.speed} km/h</strong></div>
+    const activeBusMarker = L.marker(busPos, { icon: busIcon }).addTo(markersLayer);
+    activeBusMarker.bindPopup(`
+      <div style="font-family: inherit; color: #09090b; min-width: 190px; padding: 4px;">
+        <strong style="font-size: 14px; color: #059669;">Bus 12 (UP-16-BT-9912)</strong>
+        <div style="font-size: 11px; color: ${busLive ? '#10b981' : '#f59e0b'}; font-weight: 700; margin-top: 2px;">
+          ● ${busLive ? 'LIVE GPS (≤60s)' : 'GPS STALE (>60s)'}
+        </div>
+        <div style="font-size: 11px; color: #475569; margin-top: 4px;">Speed: <strong>${busSpeed} km/h</strong></div>
+        <div style="font-size: 11px; color: #475569;">Route: <strong>North Corridor Express</strong></div>
         <div style="font-size: 11px; color: #475569;">Driver: Rajesh Kumar (+91 98765 43210)</div>
       </div>
     `);
 
-    // Render User Real Location Marker (if detected)
+    // Render Real Live User Location (if granted)
     if (userCoords) {
       const userPos = [userCoords.latitude, userCoords.longitude];
 
-      // User Accuracy Radius
       if (userCoords.accuracy && userCoords.accuracy < 2000) {
         L.circle(userPos, {
           radius: userCoords.accuracy,
           color: '#38bdf8',
           weight: 1,
           fillColor: '#38bdf8',
-          fillOpacity: 0.12,
+          fillOpacity: 0.1,
         }).addTo(routeLayer);
       }
 
-      // User Location Glowing Marker
       const userIcon = L.divIcon({
         className: 'custom-user-icon',
         html: `
-          <div style="position: relative; display: flex; align-items: center; justify-content: center; width: 34px; height: 34px;">
+          <div style="position: relative; display: flex; align-items: center; justify-content: center; width: 32px; height: 32px;">
             <div style="
               position: absolute;
-              width: 32px;
-              height: 32px;
+              width: 30px;
+              height: 30px;
               border-radius: 50%;
               background: rgba(56, 189, 248, 0.35);
               animation: pulse-ring 2s infinite;
             "></div>
             <div style="
-              width: 16px;
-              height: 16px;
+              width: 14px;
+              height: 14px;
               border-radius: 50%;
               background: #0284c7;
-              border: 3px solid #ffffff;
-              box-shadow: 0 0 14px rgba(2, 132, 199, 0.9);
+              border: 2px solid #ffffff;
+              box-shadow: 0 0 12px rgba(2, 132, 199, 0.9);
             "></div>
           </div>
         `,
-        iconSize: [34, 34],
-        iconAnchor: [17, 17],
+        iconSize: [32, 32],
+        iconAnchor: [16, 16],
       });
 
       const userMarker = L.marker(userPos, { icon: userIcon }).addTo(markersLayer);
       userMarker.bindPopup(`
-        <div style="font-family: inherit; color: #090d16; padding: 4px;">
+        <div style="font-family: inherit; color: #09090b; padding: 4px;">
           <strong style="font-size: 13px; color: #0284c7;">📍 You Are Here</strong>
           <div style="font-size: 11px; color: #64748b; margin-top: 2px;">Live Device Geolocation</div>
           <div style="font-size: 10px; color: #94a3b8; font-family: monospace; margin-top: 2px;">
@@ -370,18 +417,18 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
 
   useEffect(() => {
     renderMapContent();
-  }, [userCoords, activeBusLocation, tileMode]);
+  }, [markers, userCoords, busLocation.latitude, busLocation.longitude, busSpeed, busLive, tileMode]);
 
   // Recenter controls
   const centerOnUser = () => {
     if (mapInstanceRef.current && userCoords) {
-      mapInstanceRef.current.flyTo([userCoords.latitude, userCoords.longitude], 15, { animate: true, duration: 1.2 });
+      mapInstanceRef.current.flyTo([userCoords.latitude, userCoords.longitude], 15, { animate: true, duration: 1 });
     }
   };
 
   const centerOnBus = () => {
     if (mapInstanceRef.current) {
-      mapInstanceRef.current.flyTo([activeBusLocation.latitude, activeBusLocation.longitude], 15, { animate: true, duration: 1.2 });
+      mapInstanceRef.current.flyTo([busLocation.latitude, busLocation.longitude], 15, { animate: true, duration: 1 });
     }
   };
 
@@ -393,7 +440,7 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
         width: '100%',
         borderRadius: '16px',
         overflow: 'hidden',
-        backgroundColor: '#090d16',
+        backgroundColor: '#121217',
         border: '1px solid rgba(255, 255, 255, 0.08)',
         boxShadow: '0 8px 32px rgba(0, 0, 0, 0.45)',
         fontFamily: "'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
@@ -405,19 +452,23 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
           100% { transform: scale(1.6); opacity: 0; }
         }
         .leaflet-container {
-          background-color: #090d16 !important;
+          background-color: #121217 !important;
           font-family: inherit;
+        }
+        .leaflet-tile {
+          filter: brightness(0.98);
         }
         .leaflet-popup-content-wrapper {
           border-radius: 12px;
-          box-shadow: 0 8px 24px rgba(0,0,0,0.25);
+          box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+          border: 1px solid rgba(0,0,0,0.08);
         }
       `}</style>
 
       {/* Leaflet Live Map Canvas */}
       <div ref={mapContainerRef} style={{ width: '100%', height: '100%', zIndex: 1 }} />
 
-      {/* Top Left: Real Layer Controls */}
+      {/* Top Left: Layer Selector */}
       <div
         style={{
           position: 'absolute',
@@ -433,33 +484,17 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
           style={{
             padding: '6px 12px',
             borderRadius: '8px',
-            backgroundColor: tileMode === 'dark' ? 'rgba(56, 189, 248, 0.25)' : 'rgba(15, 23, 42, 0.85)',
+            backgroundColor: tileMode === 'dark' ? 'rgba(56, 189, 248, 0.2)' : 'rgba(18, 18, 23, 0.85)',
             border: tileMode === 'dark' ? '1px solid #38bdf8' : '1px solid rgba(255, 255, 255, 0.12)',
-            color: tileMode === 'dark' ? '#38bdf8' : '#e2e8f0',
+            color: tileMode === 'dark' ? '#38bdf8' : '#e4e4e7',
             fontSize: '11px',
             fontWeight: 600,
             cursor: 'pointer',
             backdropFilter: 'blur(10px)',
+            transition: 'all 0.15s ease',
           }}
         >
           🌙 Dark Streets
-        </button>
-
-        <button
-          onClick={() => setTileMode('satellite')}
-          style={{
-            padding: '6px 12px',
-            borderRadius: '8px',
-            backgroundColor: tileMode === 'satellite' ? 'rgba(56, 189, 248, 0.25)' : 'rgba(15, 23, 42, 0.85)',
-            border: tileMode === 'satellite' ? '1px solid #38bdf8' : '1px solid rgba(255, 255, 255, 0.12)',
-            color: tileMode === 'satellite' ? '#38bdf8' : '#e2e8f0',
-            fontSize: '11px',
-            fontWeight: 600,
-            cursor: 'pointer',
-            backdropFilter: 'blur(10px)',
-          }}
-        >
-          🛰️ Real Satellite
         </button>
 
         <button
@@ -467,16 +502,35 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
           style={{
             padding: '6px 12px',
             borderRadius: '8px',
-            backgroundColor: tileMode === 'streets' ? 'rgba(56, 189, 248, 0.25)' : 'rgba(15, 23, 42, 0.85)',
+            backgroundColor: tileMode === 'streets' ? 'rgba(56, 189, 248, 0.2)' : 'rgba(18, 18, 23, 0.85)',
             border: tileMode === 'streets' ? '1px solid #38bdf8' : '1px solid rgba(255, 255, 255, 0.12)',
-            color: tileMode === 'streets' ? '#38bdf8' : '#e2e8f0',
+            color: tileMode === 'streets' ? '#38bdf8' : '#e4e4e7',
             fontSize: '11px',
             fontWeight: 600,
             cursor: 'pointer',
             backdropFilter: 'blur(10px)',
+            transition: 'all 0.15s ease',
           }}
         >
           🗺️ Daylight Roads
+        </button>
+
+        <button
+          onClick={() => setTileMode('satellite')}
+          style={{
+            padding: '6px 12px',
+            borderRadius: '8px',
+            backgroundColor: tileMode === 'satellite' ? 'rgba(56, 189, 248, 0.2)' : 'rgba(18, 18, 23, 0.85)',
+            border: tileMode === 'satellite' ? '1px solid #38bdf8' : '1px solid rgba(255, 255, 255, 0.12)',
+            color: tileMode === 'satellite' ? '#38bdf8' : '#e4e4e7',
+            fontSize: '11px',
+            fontWeight: 600,
+            cursor: 'pointer',
+            backdropFilter: 'blur(10px)',
+            transition: 'all 0.15s ease',
+          }}
+        >
+          🛰️ Real Satellite
         </button>
       </div>
 
@@ -494,11 +548,11 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
       >
         <button
           onClick={centerOnUser}
-          title="Zoom to My Real Location"
+          title="Zoom to My Location"
           style={{
             padding: '8px 14px',
             borderRadius: '10px',
-            backgroundColor: 'rgba(15, 23, 42, 0.9)',
+            backgroundColor: 'rgba(18, 18, 23, 0.92)',
             border: '1px solid rgba(56, 189, 248, 0.4)',
             color: '#38bdf8',
             fontSize: '12px',
@@ -508,10 +562,10 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
             display: 'flex',
             alignItems: 'center',
             gap: '6px',
-            boxShadow: '0 4px 12px rgba(0,0,0,0.5)',
+            boxShadow: '0 4px 14px rgba(0,0,0,0.5)',
           }}
         >
-          <span style={{ fontSize: '14px' }}>🎯</span> My Location
+          <span>🎯</span> My Location
         </button>
 
         <button
@@ -520,7 +574,7 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
           style={{
             padding: '8px 14px',
             borderRadius: '10px',
-            backgroundColor: 'rgba(15, 23, 42, 0.9)',
+            backgroundColor: 'rgba(18, 18, 23, 0.92)',
             border: '1px solid rgba(16, 185, 129, 0.4)',
             color: '#34d399',
             fontSize: '12px',
@@ -530,14 +584,14 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
             display: 'flex',
             alignItems: 'center',
             gap: '6px',
-            boxShadow: '0 4px 12px rgba(0,0,0,0.5)',
+            boxShadow: '0 4px 14px rgba(0,0,0,0.5)',
           }}
         >
-          <span style={{ fontSize: '14px' }}>🚌</span> Focus Bus
+          <span>🚌</span> Focus Bus
         </button>
       </div>
 
-      {/* Top Right: Real-time Telematics HUD */}
+      {/* Top Right: Telematics HUD */}
       {showHud && (
         <div
           style={{
@@ -546,56 +600,56 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
             right: '54px',
             padding: '10px 14px',
             borderRadius: '10px',
-            backgroundColor: 'rgba(15, 23, 42, 0.9)',
+            backgroundColor: 'rgba(18, 18, 23, 0.92)',
             border: '1px solid rgba(255, 255, 255, 0.1)',
             color: '#ffffff',
             backdropFilter: 'blur(12px)',
             fontSize: '11px',
             zIndex: 1000,
-            minWidth: '210px',
-            boxShadow: '0 4px 16px rgba(0,0,0,0.6)',
+            minWidth: '220px',
+            boxShadow: '0 4px 18px rgba(0,0,0,0.6)',
           }}
         >
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
-            <span style={{ fontWeight: 700, color: '#38bdf8' }}>Bus 12 (KA-01-EXP-9999)</span>
+            <span style={{ fontWeight: 700, color: '#38bdf8' }}>Bus 12 (UP-16-BT-9912)</span>
             <span
               style={{
                 fontSize: '9px',
                 fontWeight: 700,
                 padding: '2px 6px',
                 borderRadius: '4px',
-                backgroundColor: 'rgba(16, 185, 129, 0.2)',
-                color: '#34d399',
-                border: '1px solid #10b981',
+                backgroundColor: busLive ? 'rgba(16, 185, 129, 0.2)' : 'rgba(245, 158, 11, 0.2)',
+                color: busLive ? '#34d399' : '#fbbf24',
+                border: busLive ? '1px solid #10b981' : '1px solid #f59e0b',
               }}
             >
-              ● LIVE (&le;60s)
+              ● {busLive ? 'LIVE (≤60s)' : 'GPS STALE'}
             </span>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px', color: '#94a3b8' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px', color: '#a1a1aa' }}>
             <div>
-              Speed: <strong style={{ color: '#ffffff' }}>{activeBusLocation.speed} km/h</strong>
+              Speed: <strong style={{ color: '#ffffff' }}>{busSpeed} km/h</strong>
             </div>
             <div>
-              Heading: <strong style={{ color: '#ffffff' }}>84&deg; NE</strong>
+              Heading: <strong style={{ color: '#ffffff' }}>{busHeading}&deg; NE</strong>
             </div>
             <div>
-              Lat: <strong style={{ color: '#ffffff' }}>{activeBusLocation.latitude.toFixed(4)}</strong>
+              Lat: <strong style={{ color: '#ffffff' }}>{busLocation.latitude.toFixed(4)}</strong>
             </div>
             <div>
-              Lng: <strong style={{ color: '#ffffff' }}>{activeBusLocation.longitude.toFixed(4)}</strong>
+              Lng: <strong style={{ color: '#ffffff' }}>{busLocation.longitude.toFixed(4)}</strong>
             </div>
           </div>
 
-          <div style={{ marginTop: '6px', paddingTop: '6px', borderTop: '1px solid rgba(255,255,255,0.08)', fontSize: '10px', color: '#a1a1aa' }}>
-            {geoStatus === 'acquired' ? (
+          <div style={{ marginTop: '6px', paddingTop: '6px', borderTop: '1px solid rgba(255,255,255,0.08)', fontSize: '10px', color: '#71717a' }}>
+            {geoStatus === 'acquired' && userCoords ? (
               <span style={{ color: '#34d399', display: 'flex', alignItems: 'center', gap: '4px' }}>
                 <span style={{ width: '5px', height: '5px', borderRadius: '50%', backgroundColor: '#10b981' }} />
-                Your location locked: {userCoords?.latitude.toFixed(4)}, {userCoords?.longitude.toFixed(4)}
+                Your location: {userCoords.latitude.toFixed(4)}, {userCoords.longitude.toFixed(4)}
               </span>
             ) : (
-              <span>Detecting user GPS coordinates...</span>
+              <span>Geofence radius: 100m PostGIS polygon buffer</span>
             )}
           </div>
         </div>
@@ -610,23 +664,23 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
           right: '14px',
           padding: '8px 14px',
           borderRadius: '10px',
-          backgroundColor: 'rgba(9, 13, 22, 0.9)',
-          border: '1px solid rgba(255, 255, 255, 0.1)',
+          backgroundColor: 'rgba(18, 18, 23, 0.94)',
+          border: '1px solid rgba(255, 255, 255, 0.08)',
           backdropFilter: 'blur(10px)',
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
           fontSize: '11px',
-          color: '#94a3b8',
+          color: '#a1a1aa',
           zIndex: 1000,
         }}
       >
         <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
           <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#10b981' }} />
-          Live Geographic Cartography: Real Streets &amp; 50m PostGIS Geofence Tolerance Active
+          Authoritative Cartography: Sector 62 &rarr; DPIS Noida Campus Corridor (50m Buffer)
         </span>
-        <span style={{ color: '#cbd5e1' }}>
-          Destination: <strong style={{ color: '#38bdf8' }}>School Main Campus (~12 min)</strong>
+        <span style={{ color: '#e4e4e7' }}>
+          Terminus: <strong style={{ color: '#38bdf8' }}>DPIS Main Campus (~12 min)</strong>
         </span>
       </div>
     </div>

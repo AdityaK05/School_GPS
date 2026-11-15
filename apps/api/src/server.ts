@@ -200,9 +200,29 @@ export function createServer(services: AppServices = createServices()): http.Ser
     const requestId = (req.headers['x-request-id'] as string) || `req_${Date.now()}`;
     res.setHeader('X-Request-Id', requestId);
     res.setHeader('Content-Type', 'application/json');
-    res.setHeader('Access-Control-Allow-Origin', '*');
+    const allowedOrigins = [
+      'https://school-gps-admin-adityak05s-projects.vercel.app',
+      'http://localhost:5173',
+      'http://localhost:3000',
+      'http://localhost:4173',
+    ];
+    if (process.env.CORS_ORIGIN) {
+      process.env.CORS_ORIGIN.split(',').forEach((o) => {
+        const trimmed = o.trim();
+        if (trimmed && !allowedOrigins.includes(trimmed)) allowedOrigins.push(trimmed);
+      });
+    }
+
+    const requestOrigin = (req.headers.origin as string) || '';
+    const corsOrigin =
+      allowedOrigins.includes(requestOrigin) || process.env.CORS_ORIGIN === '*'
+        ? (requestOrigin || '*')
+        : allowedOrigins[0];
+
+    res.setHeader('Access-Control-Allow-Origin', corsOrigin);
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PATCH, DELETE, OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Request-Id');
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
 
     if (req.method === 'OPTIONS') {
       res.writeHead(204);

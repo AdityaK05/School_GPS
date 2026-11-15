@@ -53,6 +53,9 @@ export class JourneyService {
       throw new Error(`Trip ${event.tripId} not found`);
     }
 
+    // 3. Save Immutable Journey Event (First, so foreign keys to event.id are valid!)
+    await this.journeyRepo.createEvent(event);
+
     let createdException: JourneyException | null = null;
     let nextState: JourneyState = 'EXPECTED';
 
@@ -190,8 +193,7 @@ export class JourneyService {
       }
     }
 
-    // 4. Save Immutable Journey Event
-    await this.journeyRepo.createEvent(event);
+    // 4. Return Processed Event Result
 
     return {
       success: true,
