@@ -1,5 +1,6 @@
 import React from 'react';
 import { THRESHOLDS } from '@school-transport-platform/constants';
+import { InteractiveMap, MapMarker } from './InteractiveMap';
 
 export interface LiveBusItem {
   busId: string;
@@ -22,15 +23,37 @@ export function getGpsStatus(lastRecordedAt?: string, currentTimeMs: number = Da
 }
 
 export const LiveFleetView: React.FC<{ buses: LiveBusItem[] }> = ({ buses }) => {
+  const mapMarkers: MapMarker[] = buses.length > 0
+    ? buses.map((b) => ({
+        id: b.busId,
+        label: `${b.fleetNumber} (${b.registrationNumber})`,
+        latitude: b.latitude || 12.9716,
+        longitude: b.longitude || 77.5946,
+        type: 'bus' as const,
+        speed: b.speed || 42,
+        isLive: getGpsStatus(b.lastRecordedAt) === 'LIVE',
+      }))
+    : [
+        {
+          id: 'bus_demo_01',
+          label: 'BUS-01 (KA-01-EXP-9999)',
+          latitude: 12.9716,
+          longitude: 77.5946,
+          type: 'bus' as const,
+          speed: 42,
+          isLive: true,
+        },
+      ];
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '28px' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
         <div>
           <h2 style={{ fontSize: '1.75rem', fontWeight: 600, color: '#ffffff', letterSpacing: '-0.03em', margin: 0 }}>
-            Fleet Telematics
+            Fleet Telematics & Live Map
           </h2>
           <p style={{ fontSize: '0.875rem', color: '#71717a', marginTop: '6px' }}>
-            Real-time vehicle coordinates, speed, and GPS health across registered fleet.
+            Real-time vehicle coordinates, speed, animated corridor navigation, and GPS freshness.
           </p>
         </div>
         <span
@@ -43,9 +66,12 @@ export const LiveFleetView: React.FC<{ buses: LiveBusItem[] }> = ({ buses }) => 
             border: '1px solid rgba(255, 255, 255, 0.06)',
           }}
         >
-          Total Fleet: <strong style={{ color: '#ffffff', fontWeight: 600 }}>{buses.length}</strong>
+          Total Fleet: <strong style={{ color: '#ffffff', fontWeight: 600 }}>{buses.length || 1}</strong>
         </span>
       </div>
+
+      {/* Interactive Telematics Map Canvas */}
+      <InteractiveMap markers={mapMarkers} height="440px" />
 
       <div
         style={{

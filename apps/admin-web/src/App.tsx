@@ -7,10 +7,14 @@ import { JourneyMonitorView, JourneyMonitorProps } from './components/JourneyMon
 import { StudentTransportView } from './components/StudentTransportView';
 import { ExceptionCenterView } from './components/ExceptionCenterView';
 import { AuditLogView } from './components/AuditLogView';
+import { ParentPortalView } from './components/ParentPortalView';
+import { AttendantPortalView } from './components/AttendantPortalView';
 
 type Tab = 'overview' | 'fleet' | 'trips' | 'students' | 'exceptions' | 'audit';
+type PortalMode = 'admin' | 'parent' | 'attendant';
 
 export const App: React.FC = () => {
+  const [portalMode, setPortalMode] = useState<PortalMode>('admin');
   const [activeTab, setActiveTab] = useState<Tab>('overview');
   const [schoolId, setSchoolId] = useState<string>('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa');
   const [authToken, setAuthToken] = useState<string>(
@@ -199,6 +203,67 @@ export const App: React.FC = () => {
 
         {/* Global Controls & Status */}
         <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+          {/* Universal Persona / Portal Switcher */}
+          <div
+            style={{
+              display: 'flex',
+              gap: '4px',
+              padding: '3px',
+              backgroundColor: 'rgba(255, 255, 255, 0.03)',
+              borderRadius: '10px',
+              border: '1px solid rgba(255, 255, 255, 0.08)',
+            }}
+          >
+            <button
+              onClick={() => setPortalMode('admin')}
+              style={{
+                padding: '6px 14px',
+                borderRadius: '7px',
+                border: 'none',
+                backgroundColor: portalMode === 'admin' ? 'rgba(255, 255, 255, 0.1)' : 'transparent',
+                color: portalMode === 'admin' ? '#ffffff' : '#71717a',
+                fontWeight: portalMode === 'admin' ? 600 : 400,
+                fontSize: '0.8rem',
+                cursor: 'pointer',
+                transition: 'all 0.15s ease',
+              }}
+            >
+              🛡️ Admin Ops
+            </button>
+            <button
+              onClick={() => setPortalMode('parent')}
+              style={{
+                padding: '6px 14px',
+                borderRadius: '7px',
+                border: 'none',
+                backgroundColor: portalMode === 'parent' ? 'rgba(56, 189, 248, 0.2)' : 'transparent',
+                color: portalMode === 'parent' ? '#38bdf8' : '#71717a',
+                fontWeight: portalMode === 'parent' ? 600 : 400,
+                fontSize: '0.8rem',
+                cursor: 'pointer',
+                transition: 'all 0.15s ease',
+              }}
+            >
+              👨‍👩‍👧 Parent View
+            </button>
+            <button
+              onClick={() => setPortalMode('attendant')}
+              style={{
+                padding: '6px 14px',
+                borderRadius: '7px',
+                border: 'none',
+                backgroundColor: portalMode === 'attendant' ? 'rgba(16, 185, 129, 0.2)' : 'transparent',
+                color: portalMode === 'attendant' ? '#34d399' : '#71717a',
+                fontWeight: portalMode === 'attendant' ? 600 : 400,
+                fontSize: '0.8rem',
+                cursor: 'pointer',
+                transition: 'all 0.15s ease',
+              }}
+            >
+              🚌 Attendant Scanner
+            </button>
+          </div>
+
           {/* Live System Indicator */}
           <div
             style={{
@@ -300,73 +365,81 @@ export const App: React.FC = () => {
           flexDirection: 'column',
         }}
       >
-        {/* Floating Minimalist Segment Tabs */}
-        <div style={{ display: 'flex', justifyContent: 'flex-start', marginBottom: '40px' }}>
-          <nav
-            style={{
-              display: 'flex',
-              gap: '4px',
-              padding: '4px',
-              backgroundColor: 'rgba(255, 255, 255, 0.025)',
-              border: '1px solid rgba(255, 255, 255, 0.06)',
-              borderRadius: '12px',
-            }}
-          >
-            {[
-              { id: 'overview', label: 'Overview' },
-              { id: 'fleet', label: 'Fleet & Telematics' },
-              { id: 'trips', label: 'Trips & Manifest' },
-              { id: 'students', label: 'Students' },
-              { id: 'exceptions', label: 'Safety Exceptions' },
-              { id: 'audit', label: 'Audit Log' },
-            ].map((tab) => {
-              const isActive = activeTab === tab.id;
-              return (
-                <button
-                  key={tab.id}
-                  onClick={() => setActiveTab(tab.id as Tab)}
-                  style={{
-                    padding: '8px 18px',
-                    border: 'none',
-                    borderRadius: '8px',
-                    backgroundColor: isActive ? 'rgba(255, 255, 255, 0.08)' : 'transparent',
-                    color: isActive ? '#ffffff' : '#71717a',
-                    fontWeight: isActive ? 600 : 400,
-                    fontSize: '0.825rem',
-                    cursor: 'pointer',
-                    transition: 'all 0.15s ease',
-                  }}
-                  onMouseEnter={(e) => {
-                    if (!isActive) e.currentTarget.style.color = '#d4d4d8';
-                  }}
-                  onMouseLeave={(e) => {
-                    if (!isActive) e.currentTarget.style.color = '#71717a';
-                  }}
-                >
-                  {tab.label}
-                </button>
-              );
-            })}
-          </nav>
-        </div>
+        {portalMode === 'parent' && <ParentPortalView />}
 
-        {/* Tab View Canvas */}
-        <div style={{ flex: 1 }}>
-          {activeTab === 'overview' && <DashboardOverview metrics={metrics} />}
-          {activeTab === 'fleet' && <LiveFleetView buses={buses} />}
-          {activeTab === 'trips' && <JourneyMonitorView states={journeyStates} />}
-          {activeTab === 'students' && (
-            <StudentTransportView
-              students={students}
-              onAssignRoute={handleAssignRoute}
-              onAssignCard={handleAssignCard}
-            />
-          )}
-          {activeTab === 'exceptions' && (
-            <ExceptionCenterView exceptions={exceptions} onResolve={handleResolveException} />
-          )}
-          {activeTab === 'audit' && <AuditLogView logs={auditLogs} />}
-        </div>
+        {portalMode === 'attendant' && <AttendantPortalView />}
+
+        {portalMode === 'admin' && (
+          <>
+            {/* Floating Minimalist Segment Tabs */}
+            <div style={{ display: 'flex', justifyContent: 'flex-start', marginBottom: '40px' }}>
+              <nav
+                style={{
+                  display: 'flex',
+                  gap: '4px',
+                  padding: '4px',
+                  backgroundColor: 'rgba(255, 255, 255, 0.025)',
+                  border: '1px solid rgba(255, 255, 255, 0.06)',
+                  borderRadius: '12px',
+                }}
+              >
+                {[
+                  { id: 'overview', label: 'Overview' },
+                  { id: 'fleet', label: 'Fleet & Map' },
+                  { id: 'trips', label: 'Trips & Manifest' },
+                  { id: 'students', label: 'Students' },
+                  { id: 'exceptions', label: 'Safety Exceptions' },
+                  { id: 'audit', label: 'Audit Log' },
+                ].map((tab) => {
+                  const isActive = activeTab === tab.id;
+                  return (
+                    <button
+                      key={tab.id}
+                      onClick={() => setActiveTab(tab.id as Tab)}
+                      style={{
+                        padding: '8px 18px',
+                        border: 'none',
+                        borderRadius: '8px',
+                        backgroundColor: isActive ? 'rgba(255, 255, 255, 0.08)' : 'transparent',
+                        color: isActive ? '#ffffff' : '#71717a',
+                        fontWeight: isActive ? 600 : 400,
+                        fontSize: '0.825rem',
+                        cursor: 'pointer',
+                        transition: 'all 0.15s ease',
+                      }}
+                      onMouseEnter={(e) => {
+                        if (!isActive) e.currentTarget.style.color = '#d4d4d8';
+                      }}
+                      onMouseLeave={(e) => {
+                        if (!isActive) e.currentTarget.style.color = '#71717a';
+                      }}
+                    >
+                      {tab.label}
+                    </button>
+                  );
+                })}
+              </nav>
+            </div>
+
+            {/* Tab View Canvas */}
+            <div style={{ flex: 1 }}>
+              {activeTab === 'overview' && <DashboardOverview metrics={metrics} />}
+              {activeTab === 'fleet' && <LiveFleetView buses={buses} />}
+              {activeTab === 'trips' && <JourneyMonitorView states={journeyStates} />}
+              {activeTab === 'students' && (
+                <StudentTransportView
+                  students={students}
+                  onAssignRoute={handleAssignRoute}
+                  onAssignCard={handleAssignCard}
+                />
+              )}
+              {activeTab === 'exceptions' && (
+                <ExceptionCenterView exceptions={exceptions} onResolve={handleResolveException} />
+              )}
+              {activeTab === 'audit' && <AuditLogView logs={auditLogs} />}
+            </div>
+          </>
+        )}
       </main>
 
       {/* Quiet Flagship Footer */}

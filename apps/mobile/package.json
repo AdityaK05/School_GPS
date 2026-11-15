@@ -11,7 +11,8 @@
     "@school-transport-platform/constants": "*",
     "@school-transport-platform/shared-types": "*",
     "@school-transport-platform/utils": "*",
-    "@school-transport-platform/validation": "*"
+    "@school-transport-platform/validation": "*",
+    "expo": "^58.0.25"
   },
   "devDependencies": {
     "typescript": "^5.3.3"
