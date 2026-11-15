@@ -9,6 +9,7 @@ WORKDIR /app
 # Copy workspace dependencies
 COPY package.json package-lock.json* ./
 COPY packages/shared-types/package.json ./packages/shared-types/
+COPY packages/constants/package.json ./packages/constants/
 COPY packages/utils/package.json ./packages/utils/
 COPY packages/validation/package.json ./packages/validation/
 COPY packages/client-sdk/package.json ./packages/client-sdk/
