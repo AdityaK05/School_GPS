@@ -35,6 +35,9 @@ import {
 } from '@school-transport-platform/validation';
 
 import { FcmNotificationProvider } from './domain/notifications/fcm.provider';
+import { ParentAssistantService } from './domain/ai/parent-assistant.service';
+import { GroqAIProvider } from './domain/ai/groq.provider';
+import { MockAIProvider } from './domain/ai/mock.provider';
 
 // In-Memory Rate Limiter for DDoS & Brute-Force Protection
 interface RateLimitBucket {
@@ -81,6 +84,7 @@ export interface AppServices {
   notificationService: NotificationService;
   auditService: AuditService;
   authMiddleware: AuthMiddleware;
+  parentAssistantService: ParentAssistantService;
 }
 
 export interface CreateServicesOptions {
@@ -177,6 +181,15 @@ export function createServices(options?: CreateServicesOptions): AppServices {
     supabaseClient
   );
 
+  const aiProvider = process.env.GROQ_API_KEY
+    ? new GroqAIProvider({
+        apiKey: process.env.GROQ_API_KEY,
+        model: process.env.GROQ_MODEL || 'llama-3.3-70b-versatile',
+      })
+    : new MockAIProvider();
+
+  const parentAssistantService = new ParentAssistantService(container, aiProvider);
+
   return {
     container,
     journeyService,
@@ -192,6 +205,7 @@ export function createServices(options?: CreateServicesOptions): AppServices {
     notificationService,
     auditService,
     authMiddleware,
+    parentAssistantService,
   };
 }
 
@@ -757,6 +771,37 @@ export function createServer(services: AppServices = createServices()): http.Ser
           readAt: new Date().toISOString(),
         });
         return sendJson(200, successResponse(updated));
+      }
+
+      // --- PARENT AI TRANSPORT ASSISTANT (READ-ONLY CONVERSATIONAL LAYER) ---
+      if (method === 'POST' && path === '/api/v1/parent/ai/chat') {
+        const body = (await readBody()) as {
+          message: string;
+          studentId?: string;
+          history?: any[];
+        };
+
+        if (!body || !body.message || typeof body.message !== 'string') {
+          return sendJson(400, errorResponse('BAD_REQUEST', 'Missing required user message string'));
+        }
+
+        const aiResponse = await services.parentAssistantService.handleParentMessage({
+          parentUserId: auth.userId,
+          parentSchoolId: auth.schoolId,
+          message: body.message,
+          targetStudentId: body.studentId,
+          conversationHistory: body.history,
+        });
+
+        return sendJson(
+          200,
+          successResponse({
+            response: aiResponse.message,
+            childContext: aiResponse.childContext,
+            toolsExecuted: aiResponse.toolsExecuted,
+            timestamp: new Date().toISOString(),
+          })
+        );
       }
 
       // Default Not Found

@@ -51,6 +51,7 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
   const mapInstanceRef = useRef<any>(null);
   const markersLayerRef = useRef<any>(null);
   const routeLayerRef = useRef<any>(null);
+  const activeTileLayerRef = useRef<any>(null);
 
   const [tileMode, setTileMode] = useState<'dark' | 'streets' | 'satellite'>('dark');
   const [userCoords, setUserCoords] = useState<{ latitude: number; longitude: number; accuracy?: number } | null>(null);
@@ -173,22 +174,24 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
     if (!mapInstanceRef.current || !(window as any).L) return;
     const map = mapInstanceRef.current;
 
-    // Remove existing tile layers cleanly
-    map.eachLayer((layer: any) => {
-      if (layer instanceof L.TileLayer) {
-        map.removeLayer(layer);
-      }
-    });
+    // Remove existing tile layer cleanly without destroying other overlay layers
+    if (activeTileLayerRef.current) {
+      map.removeLayer(activeTileLayerRef.current);
+      activeTileLayerRef.current = null;
+    }
 
     let tileUrl: string;
     let options: any;
 
     if (mode === 'streets') {
-      // CartoDB Voyager — Crisp daylight streets, fast CDN, supports subdomains a,b,c,d
-      tileUrl = 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png';
+      // CartoDB Voyager — Crisp daylight streets, crossOrigin enabled, buffer cached
+      tileUrl = 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png';
       options = {
         maxZoom: 19,
         subdomains: 'abcd',
+        crossOrigin: true,
+        keepBuffer: 8,
+        updateWhenZooming: false,
         attribution: '&copy; CartoDB &copy; OpenStreetMap',
       };
     } else if (mode === 'satellite') {
@@ -196,22 +199,34 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
       tileUrl = 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}';
       options = {
         maxZoom: 19,
+        keepBuffer: 8,
+        updateWhenZooming: false,
         attribution: '&copy; ESRI',
       };
     } else {
       // Dark Matter — Default executive night aesthetic
-      tileUrl = 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png';
+      tileUrl = 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png';
       options = {
         maxZoom: 19,
         subdomains: 'abcd',
+        crossOrigin: true,
+        keepBuffer: 8,
+        updateWhenZooming: false,
         attribution: '&copy; CartoDB &copy; OpenStreetMap',
       };
     }
 
     const tileLayer = L.tileLayer(tileUrl, options);
     tileLayer.addTo(map);
+    activeTileLayerRef.current = tileLayer;
 
-    // Re-render markers and route on top
+    // Adjust container background so loading tiles blend seamlessly
+    if (mapContainerRef.current) {
+      mapContainerRef.current.style.backgroundColor =
+        mode === 'streets' ? '#f1f5f9' : mode === 'satellite' ? '#0f172a' : '#121217';
+    }
+
+    // Invalidate size smoothly
     setTimeout(() => {
       if (mapInstanceRef.current) {
         mapInstanceRef.current.invalidateSize();
@@ -220,7 +235,9 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
   };
 
   useEffect(() => {
-    updateTiles(tileMode);
+    if (mapInstanceRef.current) {
+      updateTiles(tileMode);
+    }
   }, [tileMode]);
 
   // 4. Render Markers, Route Polylines, User Position & PostGIS Geofences
@@ -452,7 +469,7 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
           100% { transform: scale(1.6); opacity: 0; }
         }
         .leaflet-container {
-          background-color: #121217 !important;
+          background-color: transparent !important;
           font-family: inherit;
         }
         .leaflet-tile {

@@ -12,6 +12,10 @@ export const ConfigSchema = z.object({
   SUPABASE_SECRET_KEY: z.string().min(10).optional(),
   LOG_LEVEL: z.enum(['DEBUG', 'INFO', 'WARN', 'ERROR']).default('INFO'),
   CORS_ORIGIN: z.string().default('*'),
+  // Groq AI Transport Assistant
+  GROQ_API_KEY: z.string().optional(),
+  GROQ_MODEL: z.string().default('llama-3.3-70b-versatile'),
+  AI_ENABLED: z.coerce.boolean().default(true),
 });
 
 export type AppConfig = z.infer<typeof ConfigSchema>;
