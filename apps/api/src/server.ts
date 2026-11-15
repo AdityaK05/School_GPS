@@ -98,11 +98,11 @@ export function createServices(options?: CreateServicesOptions): AppServices {
   } else if (options?.useSupabase || supabaseClient || process.env.NODE_ENV === 'production') {
     if (!supabaseClient) {
       const url = process.env.SUPABASE_URL || '';
-      const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SECRET_KEY || '';
+      const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_ANON_KEY || '';
       if (!url || !key) {
         if (process.env.NODE_ENV === 'production') {
           throw new Error(
-            'FATAL: NODE_ENV=production requires valid SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY. In-memory fallback is strictly forbidden in production.'
+            'FATAL: NODE_ENV=production requires valid SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY or SUPABASE_ANON_KEY. In-memory fallback is strictly forbidden in production.'
           );
         }
         throw new Error('SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are required for Supabase integration');
