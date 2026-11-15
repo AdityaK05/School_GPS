@@ -1,115 +1,180 @@
-# School Transport Safety & Accountability Platform
+# 🛡️ Aegis — School Transport Safety & Accountability Platform
 
-A production-grade, multi-tenant platform designed for school bus safety, real-time telemetry reconciliation, attendance verification, exception detection, and operational accountability.
+> **Mission-Critical Student Safety, Deterministic Journey Verification, and Live GPS Fleet Telematics.**  
+> Built for K-12 school districts, enterprise fleet operators, and transport authorities.
 
----
-
-## 1. Product Overview
-
-The **School Transport Safety & Accountability Platform** provides deterministic, auditable tracking for K-12 school transportation.
-
-### Core Capabilities
-- **Deterministic Journey Lifecycle**: Real-time state machine tracking students through canonical states:
-  $$\text{EXPECTED} \rightarrow \text{BOARDING\_PENDING} \rightarrow \text{BOARDED} \rightarrow \text{ONBOARD} \rightarrow \text{EXIT\_PENDING} \rightarrow \text{EXIT\_RECORDED} \rightarrow \text{COMPLETED}$$
-- **Contactless 13.56 MHz RFID Verification**: ISO/IEC 14443 Type A/B compliant smart card ingestion. Uses high-entropy opaque tokens without storing or transmitting student PII on physical cards.
-- **Sub-60-Second GPS Telemetry & Freshness Monitoring**: Real-time GPS stream evaluation classifying vehicles as `LIVE` ($\le 60\text{s}$), `STALE` ($> 60\text{s}$), or `UNAVAILABLE`.
-- **Geospatial Geofencing & Stop Arrival**: Automated stop detection with a strict architectural guarantee: **bus reaching a stop never automatically marks a student as exited**.
-- **Automated Exception Detection Engine**: Real-time detection across 8 canonical exception types (`WRONG_BUS`, `EXIT_MISSING`, `WRONG_STOP_EXIT`, `GPS_UNAVAILABLE`, `BOARDING_MISSING`, `DUPLICATE_SCAN`, `SYNC_FAILURE`, `MANUAL_ATTENDANCE_OVERRIDE`).
-- **Offline-First Attendant Resilience**: SQLite local queue manager with UUID v7 idempotency keys ensuring zero scan loss during cellular blackouts.
-- **Strict Multi-Tenant Isolation & Zero Biometrics**: Complete database Row Level Security (RLS) enforcement preventing cross-school data leakage. Biometric data is strictly prohibited.
+[![Production Deploy](https://img.shields.io/badge/Vercel-Live_Production-black?style=flat&logo=vercel)](https://school-gps-admin-adityak05s-projects.vercel.app)
+[![API Engine](https://img.shields.io/badge/Render-API_Online-46E3B7?style=flat&logo=render)](https://school-gps-api.onrender.com)
+[![Database](https://img.shields.io/badge/Supabase-Postgres_17_Active-3ECF8E?style=flat&logo=supabase)](https://supabase.com)
+[![Tests](https://img.shields.io/badge/Vitest-75%2F75_Passing-brightgreen?style=flat)](https://github.com/AdityaK05/School_GPS)
 
 ---
 
-## 2. Monorepo Structure
+## 🌐 Live Production Deployments
 
-```
-School_GPS/
-├── apps/
-│   ├── api/                  # Core Safety Engine HTTP REST Server & Domain Services
-│   ├── admin-web/            # School Administrator Operations Web Portal
-│   └── mobile/               # Mobile Attendant & Parent Application Workflows
-├── packages/
-│   ├── client-sdk/           # Typed API Client, Realtime Manager & Offline Sync Engine
-│   ├── constants/            # Canonical Enums, Event Types, and Thresholds
-│   ├── shared-types/         # Authoritative TypeScript Domain Interfaces & Types
-│   ├── utils/                # UUID v7, Haversine Geofencing, Logger & ApiResponse
-│   └── validation/           # Zod Ingestion & Configuration Schemas
-├── supabase/
-│   └── migrations/           # PostgreSQL Migrations 001 through 007
-├── docs/                     # Production Deployment, Operations, Security & Testing Guides
-└── tests/                    # Vitest Test Suites (54 tests, 100% pass rate)
+| Component | Target Role | URL | Status |
+| :--- | :--- | :--- | :---: |
+| **Unified Web Portal** | School Admin, Parents & Attendants | [school-gps-admin-adityak05s-projects.vercel.app](https://school-gps-admin-adityak05s-projects.vercel.app) | 🟢 **LIVE** |
+| **Backend Safety Engine** | Telematics, RFID Ingestion & REST API | [school-gps-api.onrender.com](https://school-gps-api.onrender.com) | 🟢 **LIVE** |
+| **API Health Check** | System Monitoring & Uptime | [school-gps-api.onrender.com/api/v1/health](https://school-gps-api.onrender.com/api/v1/health) | 🟢 **HEALTHY** |
+| **Supabase Cloud** | PostgreSQL 17 + PostGIS + RLS | `wsddukyzfpazndprbnsr` (`ap-south-1`) | 🟢 **HEALTHY** |
+
+*Tip: The unified web portal features an instant **Role Switcher** in the top navigation bar to toggle between **🛡️ Admin Ops**, **👨‍👩‍👧 Parent View**, and **🚌 Attendant Scanner**.*
+
+---
+
+## 🗺️ System Mindmap
+
+```text
+                               AEGIS SAFETY PLATFORM
+                                         │
+    ┌──────────────────┬─────────────────┴─────────────────┬──────────────────┐
+    ▼                  ▼                                   ▼                  ▼
+STUDENT SAFETY     FLEET TELEMATICS                   MULTI-ROLE UI      DATA & AUDIT
+ ├── RFID Scans     ├── Dual-Timestamp GPS Ingestion   ├── Admin Console  ├── Multi-Tenant RLS
+ ├── Journey Engine ├── 60s Freshness Threshold (ADR-8)├── Parent App     ├── Immutable Logs
+ ├── Wrong Bus Inter├── 50m PostGIS Geofence Rings     └── Attendant App  ├── UUIDv7 Idempotency
+ └── Terminus Exit  └── Real Cartographic Streets                         └── Offline Queue Sync
 ```
 
+```mermaid
+mindmap
+  root((Aegis Fleet Safety))
+    Deterministic Safety Engine
+      RFID Boarding Verification
+      Wrong Bus Interception
+      Terminus Exit Enforcement
+      Manual Attendance Overrides
+    Real-Time Telematics
+      60s GPS Freshness ADR-8
+      PostGIS 50m Geofencing
+      Real Cartography Leaflet
+      Device Location Detection
+    Unified User Surfaces
+      School Admin Operations
+      Parent Live Tracking
+      Attendant In-Bus Console
+      Multi-Child Switching
+    Security & Cloud
+      Multi-Tenant Postgres RLS
+      Supabase Cloud ap-south-1
+      Vercel Global Edge CDN
+      Render Container API
+```
+
 ---
 
-## 3. Quick Start & Local Development
+## 🏗️ Architecture Diagram
+
+```mermaid
+graph TD
+    subgraph Clients ["Unified Client Surfaces"]
+        AdminWeb["Admin Web Operations<br/>(React + Vite)"]
+        ParentPortal["Parent Live Tracking<br/>(Sibling Switcher)"]
+        AttendantApp["In-Bus Attendant Console<br/>(RFID Hardware Scanner)"]
+    end
+
+    subgraph Edge ["Vercel Edge Gateway"]
+        VercelCDN["Vercel Production Router<br/>school-gps-admin.vercel.app"]
+        Proxy["Automated Proxy (/api/*)"]
+    end
+
+    subgraph Backend ["Render Cloud Platform"]
+        API["Node.js 20 Backend API<br/>school-gps-api.onrender.com"]
+        Engine["Deterministic Safety Engine<br/>(Finite State Machine)"]
+        Telematics["GPS Telematics Processor<br/>(Dual Timestamps)"]
+        FCM["FCM Notification Service<br/>(Push Alerts)"]
+    end
+
+    subgraph DataLayer ["Supabase Enterprise Database"]
+        PostgreSQL["PostgreSQL 17 + PostGIS"]
+        RLS["Row Level Security (Tenants)"]
+        Audit["Immutable Audit Log Trail"]
+    end
+
+    Clients --> VercelCDN
+    VercelCDN --> Proxy
+    Proxy --> API
+    API --> Engine
+    API --> Telematics
+    API --> FCM
+    Engine --> PostgreSQL
+    Telematics --> PostgreSQL
+    PostgreSQL --> RLS
+    PostgreSQL --> Audit
+```
+
+---
+
+## 🚀 How to Run Locally
 
 ### Prerequisites
-- Node.js 20.x or higher
-- npm 9.x or higher
-- (Optional) Docker or Supabase CLI for local database execution
+* **Node.js**: `v20.x` or higher
+* **npm**: `v10.x` or higher
 
-### Installation
+### Quick Start
 ```bash
-# Clone the repository
-git clone <repository-url>
+# 1. Clone the repository
+git clone https://github.com/AdityaK05/School_GPS.git
 cd School_GPS
 
-# Install workspace dependencies
-npm install --ignore-scripts
+# 2. Install workspace dependencies
+npm install
+
+# 3. Start Backend API Server (Port 3000)
+npm run dev:api
+
+# 4. In a second terminal, start Admin Web & Portal (Port 5173)
+npm run dev:admin
+
+# 5. Open in your browser:
+# http://localhost:5173
 ```
 
-### Environment Configuration
+### Verification & Testing
 ```bash
-# Copy the environment template
-cp .env.example .env
-```
-Configure your `.env` placeholders:
-- `PORT=3000`
-- `NODE_ENV=development`
-- `SUPABASE_URL=https://your-project.supabase.co`
-- `SUPABASE_ANON_KEY=your_anon_key`
+# Run strict TypeScript typecheck across all monorepo packages
+npm run typecheck
 
----
+# Run full Vitest suite (75 tests across 8 suites)
+npm run test:run
 
-## 4. Running the Platform
-
-### Running Automated Test Suites
-```bash
-# Run complete test suite (54 tests)
-npm test
-
-# Run tests with single-pass reporter
-npx vitest run
-
-# Run TypeScript static verification across all packages
-npx tsc --noEmit
-```
-
-### Starting the Core Safety Engine API
-```bash
-# Launch the API server locally on port 3000
-npm run start:api
+# Execute full end-to-end trip simulation with 0 safety faults
+npm run simulate
 ```
 
 ---
 
-## 5. Hardware Integration & Simulators
+## 🗺️ Real Live Map & Free API Key Guide
 
-The platform features a vendor-independent device abstraction layer supporting enterprise GPS units (e.g. Teltonika AVL) and 13.56 MHz RFID readers.
+The platform integrates a **real live cartographic map** with interactive streets, satellite imagery, animated bus markers, and device geolocation.
 
-For testing in non-vehicle environments, deterministic simulators are provided in `apps/api/src/domain/hardware/simulators/`:
-- **`GPSSimulator`**: Simulates live coordinate movement, stale telemetry ($>60\text{s}$), recovery events, and malformed coordinate packets.
-- **`RFIDSimulator`**: Simulates boarding taps, exit taps, duplicate taps ($<30\text{s}$), wrong bus taps, and offline queuing.
+### Free Map Options:
+
+| Provider | Cost | API Key Required? | Details |
+| :--- | :--- | :---: | :--- |
+| **CartoDB Dark Matter** *(Default)* | **100% Free** | **NO** | Pre-configured out of the box. Crisp dark mode streets, road names, and building footprints worldwide. |
+| **OpenStreetMap Standard** | **100% Free** | **NO** | Standard daylight community street maps. Toggle with one click on the map. |
+| **ArcGIS World Imagery** | **100% Free** | **NO** | Real satellite imagery tiles worldwide. |
+| **Google Maps Platform** | **Free (\$200/mo credit)** | **YES** *(Optional)* | Google Cloud gives \$200 free credit monthly (~28,500 map loads/month). Set `VITE_GOOGLE_MAPS_API_KEY` in `.env.local`. |
+| **Mapbox GL** | **Free (50k loads/mo)** | **YES** *(Optional)* | Sign up at [mapbox.com](https://mapbox.com) for a free public token (`pk.eyJ...`). |
 
 ---
 
-## 6. Documentation References
+## 📂 Documentation Index
 
-For exhaustive documentation, refer to the guides in the `docs/` directory:
-- [Deployment Guide](file:///d:/School_GPS/docs/deployment.md): Topology, environment variables, migration sequence, and rollbacks.
-- [Operations Runbook](file:///d:/School_GPS/docs/operations.md): Daily trip lifecycle, exception resolution, and manual overrides.
-- [Security & Tenant Isolation](file:///d:/School_GPS/docs/security.md): RLS architecture, RBAC matrix, and opaque token security.
-- [Hardware Integration Guide](file:///d:/School_GPS/docs/hardware-integration.md): GPS protocols, RFID standards, and simulator usage.
-- [Testing Strategy](file:///d:/School_GPS/docs/testing.md): Automated testing pyramid and 15 end-to-end scenario specifications.
-- [Architecture Decisions (ADRs)](file:///d:/School_GPS/docs/architecture-decisions.md): Formal rationale for ADR-1 through ADR-13.
+All in-depth technical specifications, architecture decisions, and operational runbooks are located in the [`docs/`](file:///d:/School_GPS/docs/) folder:
+
+* [`docs/HLD.md`](file:///d:/School_GPS/docs/HLD.md) — High-Level Architecture Design & Threat Model.
+* [`docs/LLD.md`](file:///d:/School_GPS/docs/LLD.md) — Low-Level Component Architecture, Database Schemas & State Transitions.
+* [`docs/architecture-decisions.md`](file:///d:/School_GPS/docs/architecture-decisions.md) — Key Architectural Decision Records (ADRs 1–10).
+* [`docs/DEPLOYMENT_GUIDE.md`](file:///d:/School_GPS/docs/DEPLOYMENT_GUIDE.md) — Production Deployment Walkthrough for Vercel, Render, and Supabase.
+* [`docs/ENVIRONMENT_CONFIG.md`](file:///d:/School_GPS/docs/ENVIRONMENT_CONFIG.md) — Complete Environment Variable Classification & Inventory.
+* [`docs/OPERATIONS_RUNBOOK.md`](file:///d:/School_GPS/docs/OPERATIONS_RUNBOOK.md) — Incident Response, Exception Handling & Disaster Recovery.
+* [`docs/SECURITY_AUDIT.md`](file:///d:/School_GPS/docs/SECURITY_AUDIT.md) — Multi-Tenant Row Level Security, Token Authorization & Secret Scans.
+* [`docs/TESTING_SUITE.md`](file:///d:/School_GPS/docs/TESTING_SUITE.md) — 75-Test Automated Suite Verification & Hardware Simulations.
+
+---
+
+## ⚖️ License
+Proprietary & Confidential — Aegis Fleet Safety OS. All Rights Reserved.
