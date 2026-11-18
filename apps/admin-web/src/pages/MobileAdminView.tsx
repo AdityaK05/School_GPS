@@ -1,10 +1,24 @@
 import React, { useState } from 'react';
 import { useRouter } from '../router/Router';
-import { colors, radii, shadows } from '../theme/design-system';
+import { useTheme } from '../theme/ThemeContext';
+import { radii, shadows } from '../theme/design-system';
 import { StatusBadge } from '../components/ui/SharedComponents';
+import {
+  Navigation,
+  Bell,
+  UsersRound,
+  BusFront,
+  CircleCheck,
+  TriangleAlert,
+  ChevronRight,
+  ArrowRight,
+  House,
+  LayoutGrid,
+} from 'lucide-react';
 
 export const MobileAdminView: React.FC = () => {
   const { navigate, setPersona } = useRouter();
+  const { colors, isDark } = useTheme();
   const [activeTab, setActiveTab] = useState<'home' | 'buses' | 'students' | 'more'>('home');
 
   const buses = [
@@ -14,16 +28,18 @@ export const MobileAdminView: React.FC = () => {
   ];
 
   return (
-    <div style={{ display: 'flex', justifyContent: 'center', width: '100%', minHeight: '100vh', backgroundColor: '#f1f5f9', padding: '16px 0' }}>
+    <div style={{ display: 'flex', justifyContent: 'center', width: '100%', minHeight: '100vh', backgroundColor: colors.canvasBg, padding: '16px 0' }}>
       {/* Phone Frame matching reference screen 3 */}
       <div
         style={{
           width: '100%',
           maxWidth: '414px',
           minHeight: '844px',
-          backgroundColor: '#ffffff',
+          backgroundColor: colors.card,
           borderRadius: radii.xl,
-          boxShadow: '0 20px 40px -10px rgba(0, 0, 0, 0.12), 0 0 0 1px rgba(0, 0, 0, 0.05)',
+          boxShadow: isDark
+            ? '0 20px 40px -10px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.08)'
+            : '0 20px 40px -10px rgba(0, 0, 0, 0.12), 0 0 0 1px rgba(0, 0, 0, 0.05)',
           overflow: 'hidden',
           display: 'flex',
           flexDirection: 'column',
@@ -33,7 +49,7 @@ export const MobileAdminView: React.FC = () => {
         {/* Status Bar */}
         <div style={{ padding: '12px 20px 4px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '12px', fontWeight: 700, color: colors.textPrimary }}>
           <span>9:41</span>
-          <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+          <div style={{ display: 'flex', gap: '6px', alignItems: 'center', fontSize: '11px', color: colors.textSecondary }}>
             <span>5G</span>
             <span>● 100%</span>
           </div>
@@ -52,10 +68,9 @@ export const MobileAdminView: React.FC = () => {
                 alignItems: 'center',
                 justifyContent: 'center',
                 color: '#ffffff',
-                fontSize: '14px',
               }}
             >
-              📍
+              <Navigation size={15} strokeWidth={2.2} fill="#ffffff" />
             </div>
             <span style={{ fontSize: '17px', fontWeight: 800, color: colors.textPrimary, letterSpacing: '-0.02em' }}>
               School-GPS
@@ -78,7 +93,20 @@ export const MobileAdminView: React.FC = () => {
             >
               Web Ops ⇄
             </button>
-            <span style={{ fontSize: '18px', cursor: 'pointer' }}>🔔</span>
+            <button
+              onClick={() => navigate('/exceptions')}
+              style={{
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+                color: colors.textSecondary,
+                display: 'flex',
+                alignItems: 'center',
+                padding: '4px',
+              }}
+            >
+              <Bell size={18} strokeWidth={2} />
+            </button>
           </div>
         </div>
 
@@ -97,15 +125,18 @@ export const MobileAdminView: React.FC = () => {
             {/* Green Pill: 428 Students */}
             <div
               style={{
-                backgroundColor: '#ecfdf5',
+                backgroundColor: isDark ? 'rgba(16, 185, 129, 0.12)' : '#ecfdf5',
                 borderRadius: radii.lg,
                 padding: '14px 10px',
                 textAlign: 'center',
-                border: '1px solid #a7f3d0',
+                border: `1px solid ${isDark ? 'rgba(16, 185, 129, 0.3)' : '#a7f3d0'}`,
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
               }}
             >
-              <div style={{ fontSize: '20px' }}>👥</div>
-              <div style={{ fontSize: '20px', fontWeight: 800, color: colors.textPrimary, marginTop: '2px' }}>
+              <UsersRound size={18} strokeWidth={2} color={colors.success} />
+              <div style={{ fontSize: '20px', fontWeight: 800, color: colors.textPrimary, marginTop: '4px' }}>
                 428
               </div>
               <div style={{ fontSize: '11px', color: colors.textSecondary, fontWeight: 600 }}>
@@ -116,15 +147,18 @@ export const MobileAdminView: React.FC = () => {
             {/* Blue Pill: 18 Buses */}
             <div
               style={{
-                backgroundColor: '#eff6ff',
+                backgroundColor: isDark ? 'rgba(37, 99, 235, 0.12)' : '#eff6ff',
                 borderRadius: radii.lg,
                 padding: '14px 10px',
                 textAlign: 'center',
-                border: '1px solid #bfdbfe',
+                border: `1px solid ${isDark ? 'rgba(37, 99, 235, 0.3)' : '#bfdbfe'}`,
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
               }}
             >
-              <div style={{ fontSize: '20px' }}>🚌</div>
-              <div style={{ fontSize: '20px', fontWeight: 800, color: colors.textPrimary, marginTop: '2px' }}>
+              <BusFront size={18} strokeWidth={2} color={colors.primary} />
+              <div style={{ fontSize: '20px', fontWeight: 800, color: colors.textPrimary, marginTop: '4px' }}>
                 18
               </div>
               <div style={{ fontSize: '11px', color: colors.textSecondary, fontWeight: 600 }}>
@@ -135,15 +169,18 @@ export const MobileAdminView: React.FC = () => {
             {/* Purple Pill: 428 Accounted */}
             <div
               style={{
-                backgroundColor: '#f5f3ff',
+                backgroundColor: isDark ? 'rgba(139, 92, 246, 0.12)' : '#f5f3ff',
                 borderRadius: radii.lg,
                 padding: '14px 10px',
                 textAlign: 'center',
-                border: '1px solid #ddd6fe',
+                border: `1px solid ${isDark ? 'rgba(139, 92, 246, 0.3)' : '#ddd6fe'}`,
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
               }}
             >
-              <div style={{ fontSize: '20px' }}>✓</div>
-              <div style={{ fontSize: '20px', fontWeight: 800, color: colors.textPrimary, marginTop: '2px' }}>
+              <CircleCheck size={18} strokeWidth={2} color="#8b5cf6" />
+              <div style={{ fontSize: '20px', fontWeight: 800, color: colors.textPrimary, marginTop: '4px' }}>
                 428
               </div>
               <div style={{ fontSize: '11px', color: colors.textSecondary, fontWeight: 600 }}>
@@ -167,9 +204,13 @@ export const MobileAdminView: React.FC = () => {
                   fontWeight: 700,
                   color: colors.primary,
                   cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '2px',
                 }}
               >
-                View All →
+                <span>View All</span>
+                <ArrowRight size={13} strokeWidth={2} />
               </button>
             </div>
 
@@ -181,17 +222,32 @@ export const MobileAdminView: React.FC = () => {
                   style={{
                     padding: '14px 16px',
                     borderRadius: radii.lg,
-                    backgroundColor: '#ffffff',
+                    backgroundColor: colors.card,
                     border: `1px solid ${colors.border}`,
                     boxShadow: shadows.sm,
                     display: 'flex',
                     justifyContent: 'space-between',
                     alignItems: 'center',
                     cursor: 'pointer',
+                    transition: 'border-color 0.15s ease',
                   }}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                    <span style={{ fontSize: '22px' }}>🚌</span>
+                    <div
+                      style={{
+                        width: '36px',
+                        height: '36px',
+                        borderRadius: radii.md,
+                        backgroundColor: colors.primaryLight,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        color: colors.primary,
+                        flexShrink: 0,
+                      }}
+                    >
+                      <BusFront size={18} strokeWidth={2} />
+                    </div>
                     <div>
                       <div style={{ fontSize: '14px', fontWeight: 800, color: colors.textPrimary }}>
                         {b.name}
@@ -204,7 +260,7 @@ export const MobileAdminView: React.FC = () => {
 
                   <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                     <StatusBadge type={b.type} icon="●" label={b.status} />
-                    <span style={{ color: colors.textMuted, fontSize: '14px' }}>›</span>
+                    <ChevronRight size={15} strokeWidth={2} color={colors.textMuted} />
                   </div>
                 </div>
               ))}
@@ -216,9 +272,9 @@ export const MobileAdminView: React.FC = () => {
             onClick={() => navigate('/exceptions')}
             style={{
               padding: '16px 18px',
-              backgroundColor: '#fffbeb',
+              backgroundColor: colors.warningLight,
               borderRadius: radii.xl,
-              border: '1px solid #fde68a',
+              border: `1px solid ${colors.warningBorder}`,
               display: 'flex',
               justifyContent: 'space-between',
               alignItems: 'center',
@@ -226,17 +282,17 @@ export const MobileAdminView: React.FC = () => {
             }}
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <span style={{ fontSize: '20px' }}>⚠️</span>
+              <TriangleAlert size={18} strokeWidth={2} color={colors.warning} />
               <div>
-                <div style={{ fontSize: '14px', fontWeight: 800, color: '#92400e' }}>
+                <div style={{ fontSize: '14px', fontWeight: 800, color: colors.warning }}>
                   1 Student Needs Attention
                 </div>
-                <div style={{ fontSize: '11px', color: '#b45309' }}>
+                <div style={{ fontSize: '11px', color: colors.textSecondary }}>
                   Missing exit scan at Sector 62 Stop
                 </div>
               </div>
             </div>
-            <span style={{ fontSize: '16px', color: '#92400e', fontWeight: 700 }}>›</span>
+            <ChevronRight size={16} strokeWidth={2} color={colors.warning} />
           </div>
 
           {/* Role Switching for Mobile */}
@@ -245,9 +301,13 @@ export const MobileAdminView: React.FC = () => {
               onClick={() => setPersona('parent')}
               style={{
                 flex: 1,
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '6px',
                 padding: '12px',
                 borderRadius: radii.md,
-                backgroundColor: '#f8fafc',
+                backgroundColor: colors.canvasBg,
                 border: `1px solid ${colors.border}`,
                 color: colors.textPrimary,
                 fontSize: '12px',
@@ -255,15 +315,20 @@ export const MobileAdminView: React.FC = () => {
                 cursor: 'pointer',
               }}
             >
-              👨‍👩‍👧 Parent App
+              <UsersRound size={14} strokeWidth={2} color={colors.primary} />
+              Parent App
             </button>
             <button
               onClick={() => setPersona('attendant')}
               style={{
                 flex: 1,
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '6px',
                 padding: '12px',
                 borderRadius: radii.md,
-                backgroundColor: '#f8fafc',
+                backgroundColor: colors.canvasBg,
                 border: `1px solid ${colors.border}`,
                 color: colors.textPrimary,
                 fontSize: '12px',
@@ -271,7 +336,8 @@ export const MobileAdminView: React.FC = () => {
                 cursor: 'pointer',
               }}
             >
-              🚌 Attendant App
+              <BusFront size={14} strokeWidth={2} color={colors.primary} />
+              Attendant App
             </button>
           </div>
         </div>
@@ -281,41 +347,45 @@ export const MobileAdminView: React.FC = () => {
           style={{
             height: '60px',
             borderTop: `1px solid ${colors.borderLight}`,
-            backgroundColor: '#ffffff',
+            backgroundColor: colors.card,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-around',
           }}
         >
           {[
-            { id: 'home', label: 'Home', icon: '🏠', path: '/' },
-            { id: 'buses', label: 'Buses', icon: '🚌', path: '/buses' },
-            { id: 'students', label: 'Students', icon: '👥', path: '/students' },
-            { id: 'more', label: 'More', icon: '▦', path: '/settings' },
-          ].map((item) => (
-            <button
-              key={item.id}
-              onClick={() => {
-                setActiveTab(item.id as any);
-                navigate(item.path);
-              }}
-              style={{
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                gap: '2px',
-                border: 'none',
-                background: 'none',
-                color: activeTab === item.id ? colors.primary : colors.textSecondary,
-                fontSize: '11px',
-                fontWeight: activeTab === item.id ? 800 : 500,
-                cursor: 'pointer',
-              }}
-            >
-              <span style={{ fontSize: '18px' }}>{item.icon}</span>
-              <span>{item.label}</span>
-            </button>
-          ))}
+            { id: 'home', label: 'Home', icon: House, path: '/' },
+            { id: 'buses', label: 'Buses', icon: BusFront, path: '/buses' },
+            { id: 'students', label: 'Students', icon: UsersRound, path: '/students' },
+            { id: 'more', label: 'More', icon: LayoutGrid, path: '/settings' },
+          ].map((item) => {
+            const IconComp = item.icon;
+            const isActive = activeTab === item.id;
+            return (
+              <button
+                key={item.id}
+                onClick={() => {
+                  setActiveTab(item.id as any);
+                  navigate(item.path);
+                }}
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  gap: '3px',
+                  border: 'none',
+                  background: 'none',
+                  color: isActive ? colors.primary : colors.textSecondary,
+                  fontSize: '11px',
+                  fontWeight: isActive ? 800 : 500,
+                  cursor: 'pointer',
+                }}
+              >
+                <IconComp size={18} strokeWidth={isActive ? 2.2 : 1.8} />
+                <span>{item.label}</span>
+              </button>
+            );
+          })}
         </div>
       </div>
     </div>

@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
 import { useRouter } from '../router/Router';
-import { colors, radii, shadows } from '../theme/design-system';
+import { useTheme } from '../theme/ThemeContext';
+import { radii, shadows } from '../theme/design-system';
 import { StatusBadge } from '../components/ui/SharedComponents';
 import { ApiClient } from '@school-transport-platform/client-sdk';
+import { ShieldCheck, Search, X, Clock, BusFront, MapPin, UserRound, Check } from 'lucide-react';
 
 interface AuditLedgerPageProps {
   apiClient: ApiClient;
@@ -10,6 +12,7 @@ interface AuditLedgerPageProps {
 
 export const AuditLedgerPage: React.FC<AuditLedgerPageProps> = ({ apiClient }) => {
   const { navigate } = useRouter();
+  const { colors, isDark } = useTheme();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedEvent, setSelectedEvent] = useState<any | null>(null);
 
@@ -76,7 +79,8 @@ export const AuditLedgerPage: React.FC<AuditLedgerPageProps> = ({ apiClient }) =
     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', maxWidth: '1100px' }}>
       {/* Header */}
       <div>
-        <div style={{ fontSize: '13px', fontWeight: 700, color: colors.primary, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+        <div style={{ fontSize: '13px', fontWeight: 700, color: colors.primary, textTransform: 'uppercase', letterSpacing: '0.04em', display: 'flex', alignItems: 'center', gap: '6px' }}>
+          <ShieldCheck size={15} strokeWidth={2} />
           Compliance &amp; Immutable Safety Ledger
         </div>
         <h1 style={{ fontSize: '28px', fontWeight: 800, color: colors.textPrimary, margin: '4px 0 2px 0', letterSpacing: '-0.02em' }}>
@@ -97,10 +101,10 @@ export const AuditLedgerPage: React.FC<AuditLedgerPageProps> = ({ apiClient }) =
           boxShadow: shadows.card,
           display: 'flex',
           alignItems: 'center',
-          gap: '10px',
+          gap: '12px',
         }}
       >
-        <span style={{ fontSize: '16px', color: colors.textMuted }}>🔍</span>
+        <Search size={18} strokeWidth={2} color={colors.textMuted} />
         <input
           type="text"
           value={searchTerm}
@@ -141,10 +145,11 @@ export const AuditLedgerPage: React.FC<AuditLedgerPageProps> = ({ apiClient }) =
                 cursor: 'pointer',
                 transition: 'background-color 0.15s ease',
               }}
-              onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#f8fafc')}
+              onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = colors.canvasBg)}
               onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
             >
-              <div style={{ fontSize: '12px', fontWeight: 800, color: colors.textPrimary }}>
+              <div style={{ fontSize: '12px', fontWeight: 800, color: colors.textPrimary, display: 'flex', alignItems: 'center', gap: '4px' }}>
+                <Clock size={12} strokeWidth={2} color={colors.textMuted} />
                 {item.time}
               </div>
 
@@ -181,7 +186,8 @@ export const AuditLedgerPage: React.FC<AuditLedgerPageProps> = ({ apiClient }) =
             left: 0,
             right: 0,
             bottom: 0,
-            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+            backgroundColor: 'rgba(0, 0, 0, 0.6)',
+            backdropFilter: 'blur(2px)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
@@ -192,8 +198,9 @@ export const AuditLedgerPage: React.FC<AuditLedgerPageProps> = ({ apiClient }) =
           <div
             onClick={(e) => e.stopPropagation()}
             style={{
-              backgroundColor: '#ffffff',
+              backgroundColor: colors.card,
               borderRadius: radii.xl,
+              border: `1px solid ${colors.border}`,
               padding: '28px',
               maxWidth: '520px',
               width: '100%',
@@ -204,7 +211,8 @@ export const AuditLedgerPage: React.FC<AuditLedgerPageProps> = ({ apiClient }) =
             }}
           >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <h3 style={{ fontSize: '18px', fontWeight: 800, color: colors.textPrimary, margin: 0 }}>
+              <h3 style={{ fontSize: '18px', fontWeight: 800, color: colors.textPrimary, margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <ShieldCheck size={20} strokeWidth={2} color={colors.primary} />
                 Safety Event Details
               </h3>
               <button
@@ -212,23 +220,25 @@ export const AuditLedgerPage: React.FC<AuditLedgerPageProps> = ({ apiClient }) =
                 style={{
                   background: 'none',
                   border: 'none',
-                  fontSize: '20px',
                   cursor: 'pointer',
                   color: colors.textMuted,
+                  display: 'flex',
+                  alignItems: 'center',
+                  padding: '4px',
                 }}
               >
-                ✕
+                <X size={18} strokeWidth={2} />
               </button>
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '13px' }}>
-              <div><strong>Timestamp:</strong> {selectedEvent.time}</div>
-              <div><strong>Target:</strong> {selectedEvent.student}</div>
-              <div><strong>Event Action:</strong> {selectedEvent.action}</div>
-              <div><strong>Verification Method:</strong> {selectedEvent.verification}</div>
-              <div><strong>Vehicle:</strong> {selectedEvent.vehicle}</div>
-              <div><strong>Location:</strong> {selectedEvent.location}</div>
-              <div><strong>Verified By:</strong> {selectedEvent.actor}</div>
+              <div><strong style={{ color: colors.textPrimary }}>Timestamp:</strong> <span style={{ color: colors.textSecondary }}>{selectedEvent.time}</span></div>
+              <div><strong style={{ color: colors.textPrimary }}>Target:</strong> <span style={{ color: colors.textSecondary }}>{selectedEvent.student}</span></div>
+              <div><strong style={{ color: colors.textPrimary }}>Event Action:</strong> <span style={{ color: colors.textSecondary }}>{selectedEvent.action}</span></div>
+              <div><strong style={{ color: colors.textPrimary }}>Verification Method:</strong> <span style={{ color: colors.textSecondary }}>{selectedEvent.verification}</span></div>
+              <div><strong style={{ color: colors.textPrimary }}>Vehicle:</strong> <span style={{ color: colors.textSecondary }}>{selectedEvent.vehicle}</span></div>
+              <div><strong style={{ color: colors.textPrimary }}>Location:</strong> <span style={{ color: colors.textSecondary }}>{selectedEvent.location}</span></div>
+              <div><strong style={{ color: colors.textPrimary }}>Verified By:</strong> <span style={{ color: colors.textSecondary }}>{selectedEvent.actor}</span></div>
               <div style={{ paddingTop: '8px', borderTop: `1px solid ${colors.borderLight}`, fontSize: '11px', color: colors.textMuted, wordBreak: 'break-all' }}>
                 Hardware Source: {selectedEvent.source} &bull; Idempotency: {selectedEvent.idempotencyKey}
               </div>

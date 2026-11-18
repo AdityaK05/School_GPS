@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from '../router/Router';
-import { colors, radii, shadows } from '../theme/design-system';
+import { useTheme } from '../theme/ThemeContext';
+import { radii, shadows } from '../theme/design-system';
 import { StatusBadge } from '../components/ui/SharedComponents';
 import { ApiClient } from '@school-transport-platform/client-sdk';
+import { TriangleAlert, CircleCheck, AlertCircle, Clock, BusFront, MapPin, ArrowRight } from 'lucide-react';
 
 interface ExceptionsPageProps {
   apiClient: ApiClient;
@@ -10,6 +12,7 @@ interface ExceptionsPageProps {
 
 export const ExceptionsPage: React.FC<ExceptionsPageProps> = ({ apiClient }) => {
   const { navigate } = useRouter();
+  const { colors, isDark } = useTheme();
   const [filter, setFilter] = useState<'ALL' | 'OPEN' | 'RESOLVED'>('OPEN');
 
   const [exceptions, setExceptions] = useState([
@@ -28,20 +31,20 @@ export const ExceptionsPage: React.FC<ExceptionsPageProps> = ({ apiClient }) => 
     },
     {
       id: 'ex_02',
-      title: 'GPS Telemetry Signal Unavailable',
+      title: 'Location Signal Unavailable',
       type: 'GPS_SIGNAL_LOST',
       severity: 'WARNING',
-      studentName: 'Route Fleet',
+      studentName: 'Corridor Transit',
       busNumber: 'Bus 14',
       stopName: 'Ring Road Corridor',
       time: '07:41 AM',
-      description: 'No GPS telemetry fix received for 8 minutes (>60s threshold exceeded).',
-      actionRequired: 'Attendant cellular data check requested.',
+      description: 'No location update received for 8 minutes (>60s threshold exceeded).',
+      actionRequired: 'Attendant cellular connection check requested.',
       status: 'OPEN',
     },
     {
       id: 'ex_03',
-      title: 'Unauthorized Bus Boarding Attempt (Wrong Bus)',
+      title: 'Wrong Bus Boarding Prevented',
       type: 'WRONG_BUS_BOARDING',
       severity: 'RESOLVED',
       studentName: 'Kabir Malhotra (Class 6-A)',
@@ -69,7 +72,8 @@ export const ExceptionsPage: React.FC<ExceptionsPageProps> = ({ apiClient }) => 
       {/* Page Title */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
         <div>
-          <div style={{ fontSize: '13px', fontWeight: 700, color: colors.danger, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+          <div style={{ fontSize: '13px', fontWeight: 700, color: colors.danger, textTransform: 'uppercase', letterSpacing: '0.04em', display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <TriangleAlert size={15} strokeWidth={2} />
             Safety First Triage
           </div>
           <h1 style={{ fontSize: '28px', fontWeight: 800, color: colors.textPrimary, margin: '4px 0 2px 0', letterSpacing: '-0.02em' }}>
@@ -94,11 +98,12 @@ export const ExceptionsPage: React.FC<ExceptionsPageProps> = ({ apiClient }) => 
                 padding: '7px 14px',
                 borderRadius: radii.md,
                 border: filter === tab.id ? `1px solid ${colors.danger}` : `1px solid ${colors.border}`,
-                backgroundColor: filter === tab.id ? colors.dangerLight : '#ffffff',
+                backgroundColor: filter === tab.id ? colors.dangerLight : colors.card,
                 color: filter === tab.id ? colors.danger : colors.textSecondary,
                 fontSize: '12px',
                 fontWeight: 700,
                 cursor: 'pointer',
+                transition: 'all 0.15s ease',
               }}
             >
               {tab.label}
@@ -135,21 +140,52 @@ export const ExceptionsPage: React.FC<ExceptionsPageProps> = ({ apiClient }) => 
             }}
           >
             {/* Top row: Title & Severity */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '8px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '12px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                <span style={{ fontSize: '22px' }}>{item.status === 'OPEN' ? '⚠️' : '✓'}</span>
+                <div
+                  style={{
+                    width: '38px',
+                    height: '38px',
+                    borderRadius: radii.md,
+                    backgroundColor: item.status === 'OPEN' ? colors.dangerLight : colors.successLight,
+                    border: `1px solid ${item.status === 'OPEN' ? colors.dangerBorder : colors.successBorder}`,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexShrink: 0,
+                  }}
+                >
+                  {item.status === 'OPEN' ? (
+                    <TriangleAlert size={18} strokeWidth={2} color={colors.danger} />
+                  ) : (
+                    <CircleCheck size={18} strokeWidth={2} color={colors.success} />
+                  )}
+                </div>
                 <div>
                   <h3 style={{ fontSize: '17px', fontWeight: 800, color: item.status === 'OPEN' ? colors.danger : colors.textPrimary, margin: 0 }}>
                     {item.title}
                   </h3>
-                  <div style={{ fontSize: '12px', color: colors.textSecondary, marginTop: '2px' }}>
-                    Target: <strong>{item.studentName}</strong> &bull; Vehicle: <strong>{item.busNumber}</strong> &bull; Location: {item.stopName}
+                  <div style={{ fontSize: '12px', color: colors.textSecondary, marginTop: '2px', display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                    <span>Target: <strong>{item.studentName}</strong></span>
+                    <span>&bull;</span>
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
+                      <BusFront size={12} strokeWidth={2} />
+                      {item.busNumber}
+                    </span>
+                    <span>&bull;</span>
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
+                      <MapPin size={12} strokeWidth={2} />
+                      {item.stopName}
+                    </span>
                   </div>
                 </div>
               </div>
 
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span style={{ fontSize: '11px', color: colors.textMuted, fontWeight: 600 }}>{item.time}</span>
+                <span style={{ fontSize: '11px', color: colors.textMuted, fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                  <Clock size={12} strokeWidth={2} />
+                  {item.time}
+                </span>
                 <StatusBadge
                   type={item.status === 'OPEN' ? 'danger' : 'success'}
                   label={item.status === 'OPEN' ? 'Action Required' : 'Resolved'}
@@ -158,33 +194,26 @@ export const ExceptionsPage: React.FC<ExceptionsPageProps> = ({ apiClient }) => 
             </div>
 
             {/* Description & Action */}
-            <div style={{ padding: '12px 16px', backgroundColor: item.status === 'OPEN' ? '#fff5f5' : '#f8fafc', borderRadius: radii.md, border: `1px solid ${item.status === 'OPEN' ? '#fed7d7' : colors.borderLight}`, fontSize: '13px' }}>
-              <div style={{ color: colors.textPrimary }}>{item.description}</div>
-              <div style={{ marginTop: '6px', fontWeight: 700, color: item.status === 'OPEN' ? colors.danger : colors.success }}>
-                👉 Next Step: {item.actionRequired}
+            <div
+              style={{
+                padding: '12px 16px',
+                backgroundColor: colors.canvasBg,
+                borderRadius: radii.md,
+                border: `1px solid ${colors.borderLight}`,
+                fontSize: '13px',
+                color: colors.textPrimary,
+                lineHeight: 1.5,
+              }}
+            >
+              <div>{item.description}</div>
+              <div style={{ fontSize: '12px', color: item.status === 'OPEN' ? colors.danger : colors.success, fontWeight: 700, marginTop: '4px' }}>
+                {item.actionRequired}
               </div>
             </div>
 
-            {/* Footer with action trigger */}
-            <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center' }}>
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  navigate(`/exceptions/${item.id}`);
-                }}
-                style={{
-                  padding: '7px 16px',
-                  backgroundColor: item.status === 'OPEN' ? colors.danger : colors.primary,
-                  color: '#ffffff',
-                  borderRadius: radii.md,
-                  border: 'none',
-                  fontSize: '12px',
-                  fontWeight: 700,
-                  cursor: 'pointer',
-                }}
-              >
-                {item.status === 'OPEN' ? 'Review & Triage Exception →' : 'View Audit History →'}
-              </button>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '4px', fontSize: '12px', fontWeight: 700, color: colors.primary }}>
+              <span>View Safety Dossier &amp; Resolve</span>
+              <ArrowRight size={13} strokeWidth={2} />
             </div>
           </div>
         ))}

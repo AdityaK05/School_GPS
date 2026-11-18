@@ -1,8 +1,22 @@
 import React, { useState } from 'react';
 import { useRouter } from '../router/Router';
-import { colors, radii, shadows } from '../theme/design-system';
+import { useTheme } from '../theme/ThemeContext';
+import { radii, shadows } from '../theme/design-system';
 import { StatusBadge } from '../components/ui/SharedComponents';
 import { ApiClient } from '@school-transport-platform/client-sdk';
+import {
+  TriangleAlert,
+  CircleCheck,
+  ArrowLeft,
+  UserRound,
+  GraduationCap,
+  Phone,
+  BusFront,
+  MapPin,
+  Clock,
+  ShieldAlert,
+  Check,
+} from 'lucide-react';
 
 interface ExceptionDetailPageProps {
   apiClient: ApiClient;
@@ -10,6 +24,7 @@ interface ExceptionDetailPageProps {
 
 export const ExceptionDetailPage: React.FC<ExceptionDetailPageProps> = ({ apiClient }) => {
   const { getParam, navigate } = useRouter();
+  const { colors, isDark } = useTheme();
   const exceptionId = getParam('id') || 'ex_01';
 
   const [resolved, setResolved] = useState(false);
@@ -77,17 +92,23 @@ export const ExceptionDetailPage: React.FC<ExceptionDetailPageProps> = ({ apiCli
         <button
           onClick={() => navigate('/exceptions')}
           style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '6px',
             padding: '8px 14px',
-            backgroundColor: '#ffffff',
+            backgroundColor: colors.card,
             border: `1px solid ${colors.border}`,
             borderRadius: radii.md,
+            color: colors.textPrimary,
             fontSize: '13px',
             fontWeight: 700,
             cursor: 'pointer',
             boxShadow: shadows.sm,
+            transition: 'background-color 0.15s ease',
           }}
         >
-          ← Back to Safety Alerts
+          <ArrowLeft size={14} strokeWidth={2} />
+          Back to Safety Alerts
         </button>
         <span style={{ fontSize: '13px', color: colors.textMuted }}>/</span>
         <span style={{ fontSize: '13px', fontWeight: 700, color: colors.textSecondary }}>Incident Investigation</span>
@@ -109,7 +130,8 @@ export const ExceptionDetailPage: React.FC<ExceptionDetailPageProps> = ({ apiCli
         {/* Header */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '16px', paddingBottom: '20px', borderBottom: `1px solid ${colors.border}` }}>
           <div>
-            <div style={{ fontSize: '11px', fontWeight: 800, color: resolved ? colors.success : colors.danger, textTransform: 'uppercase' }}>
+            <div style={{ fontSize: '11px', fontWeight: 800, color: resolved ? colors.success : colors.danger, textTransform: 'uppercase', letterSpacing: '0.04em', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <ShieldAlert size={14} strokeWidth={2} />
               Safety Protocol Case &bull; ID: {exceptionId}
             </div>
             <h1 style={{ fontSize: '26px', fontWeight: 800, color: colors.textPrimary, margin: '4px 0 2px 0' }}>
@@ -122,44 +144,64 @@ export const ExceptionDetailPage: React.FC<ExceptionDetailPageProps> = ({ apiCli
 
           <StatusBadge
             type={resolved ? 'success' : 'danger'}
-            icon={resolved ? '✓' : '⚠️'}
             label={resolved ? 'Resolved' : 'Active Triage'}
           />
         </div>
 
         {/* 1. WHAT HAPPENED */}
         <div>
-          <h3 style={{ fontSize: '12px', fontWeight: 800, color: colors.danger, textTransform: 'uppercase', marginBottom: '8px' }}>
+          <h3 style={{ fontSize: '12px', fontWeight: 800, color: colors.danger, textTransform: 'uppercase', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <TriangleAlert size={14} strokeWidth={2} />
             1. What Happened
           </h3>
-          <p style={{ fontSize: '14px', color: colors.textPrimary, lineHeight: 1.6, margin: 0, padding: '14px 18px', backgroundColor: '#fef2f2', borderRadius: radii.md, border: '1px solid #fee2e2' }}>
+          <p style={{ fontSize: '14px', color: colors.textPrimary, lineHeight: 1.6, margin: 0, padding: '14px 18px', backgroundColor: colors.dangerLight, borderRadius: radii.md, border: `1px solid ${colors.dangerBorder}` }}>
             {details.whatHappened}
           </p>
         </div>
 
         {/* 2. WHO & WHERE (2 Columns) */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '20px' }}>
           {/* Who */}
-          <div style={{ padding: '16px', backgroundColor: '#f8fafc', borderRadius: radii.md, border: `1px solid ${colors.borderLight}` }}>
-            <h4 style={{ fontSize: '12px', fontWeight: 800, color: colors.textSecondary, textTransform: 'uppercase', margin: '0 0 10px 0' }}>
+          <div style={{ padding: '18px', backgroundColor: colors.canvasBg, borderRadius: radii.md, border: `1px solid ${colors.borderLight}` }}>
+            <h4 style={{ fontSize: '12px', fontWeight: 800, color: colors.textSecondary, textTransform: 'uppercase', margin: '0 0 12px 0', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <UserRound size={14} strokeWidth={2} color={colors.primary} />
               2. Student Identity
             </h4>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', fontSize: '13px' }}>
-              <div>👤 Name: <strong>{details.who.studentName}</strong></div>
-              <div>🏫 Class: {details.who.class} &bull; Adm: {details.who.admission}</div>
-              <div>👩 Guardian: <strong>{details.who.guardian}</strong></div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '13px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span style={{ color: colors.textMuted }}>Name:</span>
+                <strong style={{ color: colors.textPrimary }}>{details.who.studentName}</strong>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <GraduationCap size={14} strokeWidth={2} color={colors.textSecondary} />
+                <span style={{ color: colors.textPrimary }}>{details.who.class} &bull; Adm: {details.who.admission}</span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Phone size={14} strokeWidth={2} color={colors.textSecondary} />
+                <span style={{ color: colors.textPrimary }}>Guardian: <strong>{details.who.guardian}</strong></span>
+              </div>
             </div>
           </div>
 
           {/* Where & When */}
-          <div style={{ padding: '16px', backgroundColor: '#f8fafc', borderRadius: radii.md, border: `1px solid ${colors.borderLight}` }}>
-            <h4 style={{ fontSize: '12px', fontWeight: 800, color: colors.textSecondary, textTransform: 'uppercase', margin: '0 0 10px 0' }}>
+          <div style={{ padding: '18px', backgroundColor: colors.canvasBg, borderRadius: radii.md, border: `1px solid ${colors.borderLight}` }}>
+            <h4 style={{ fontSize: '12px', fontWeight: 800, color: colors.textSecondary, textTransform: 'uppercase', margin: '0 0 12px 0', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <MapPin size={14} strokeWidth={2} color={colors.primary} />
               3. Location &amp; Vehicle
             </h4>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', fontSize: '13px' }}>
-              <div>🚌 Vehicle: <strong>{details.where.bus}</strong></div>
-              <div>🚏 Stop: <strong>{details.where.stop}</strong></div>
-              <div>⏱️ Dwell Time: {details.when.gracePeriodElapsed}</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '13px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <BusFront size={14} strokeWidth={2} color={colors.primary} />
+                <span style={{ color: colors.textPrimary }}>Vehicle: <strong>{details.where.bus}</strong></span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <MapPin size={14} strokeWidth={2} color={colors.textSecondary} />
+                <span style={{ color: colors.textPrimary }}>Stop: <strong>{details.where.stop}</strong></span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Clock size={14} strokeWidth={2} color={colors.textSecondary} />
+                <span style={{ color: colors.textPrimary }}>Dwell Elapsed: {details.when.gracePeriodElapsed}</span>
+              </div>
             </div>
           </div>
         </div>
@@ -167,12 +209,12 @@ export const ExceptionDetailPage: React.FC<ExceptionDetailPageProps> = ({ apiCli
         {/* 3. WHAT THE SYSTEM KNOWS */}
         <div>
           <h3 style={{ fontSize: '12px', fontWeight: 800, color: colors.textSecondary, textTransform: 'uppercase', marginBottom: '10px' }}>
-            4. What the System Knows
+            4. Verified System Telematics
           </h3>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
             {details.systemFacts.map((fact, idx) => (
               <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', color: colors.textPrimary }}>
-                <span style={{ color: colors.primary, fontWeight: 800 }}>•</span>
+                <span style={{ color: colors.primary, fontWeight: 800 }}>&bull;</span>
                 <span>{fact}</span>
               </div>
             ))}
@@ -181,7 +223,8 @@ export const ExceptionDetailPage: React.FC<ExceptionDetailPageProps> = ({ apiCli
 
         {/* 4. WHAT ACTION IS REQUIRED */}
         <div style={{ padding: '18px 20px', backgroundColor: colors.warningLight, borderRadius: radii.md, border: `1px solid ${colors.warningBorder}` }}>
-          <h3 style={{ fontSize: '12px', fontWeight: 800, color: colors.warning, textTransform: 'uppercase', margin: '0 0 6px 0' }}>
+          <h3 style={{ fontSize: '12px', fontWeight: 800, color: colors.warning, textTransform: 'uppercase', margin: '0 0 6px 0', display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <TriangleAlert size={14} strokeWidth={2} />
             5. Recommended Immediate Action
           </h3>
           <p style={{ fontSize: '14px', fontWeight: 700, color: colors.textPrimary, margin: 0 }}>
@@ -191,7 +234,7 @@ export const ExceptionDetailPage: React.FC<ExceptionDetailPageProps> = ({ apiCli
 
         {/* RESOLVE FORM */}
         {!resolved ? (
-          <div style={{ padding: '20px', backgroundColor: '#ffffff', borderRadius: radii.lg, border: `1px solid ${colors.border}`, display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          <div style={{ padding: '20px', backgroundColor: colors.card, borderRadius: radii.lg, border: `1px solid ${colors.border}`, display: 'flex', flexDirection: 'column', gap: '12px' }}>
             <h4 style={{ fontSize: '13px', fontWeight: 800, color: colors.textPrimary, textTransform: 'uppercase', margin: 0 }}>
               Resolve &amp; Clear Safety Alert
             </h4>
@@ -199,11 +242,12 @@ export const ExceptionDetailPage: React.FC<ExceptionDetailPageProps> = ({ apiCli
               type="text"
               value={resolveReason}
               onChange={(e) => setResolveReason(e.target.value)}
-              placeholder="Enter resolution reason (e.g. 'Confirmed with attendant: Student safely picked up by mother')..."
+              placeholder="Enter verification reason (e.g. 'Confirmed with attendant: Student safely picked up by mother')..."
               style={{
                 padding: '12px 14px',
                 borderRadius: radii.md,
                 border: `1px solid ${colors.border}`,
+                backgroundColor: colors.canvasBg,
                 outline: 'none',
                 fontSize: '13px',
                 color: colors.textPrimary,
@@ -214,6 +258,9 @@ export const ExceptionDetailPage: React.FC<ExceptionDetailPageProps> = ({ apiCli
               disabled={isSubmitting}
               style={{
                 alignSelf: 'flex-start',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
                 padding: '10px 22px',
                 backgroundColor: colors.success,
                 color: '#ffffff',
@@ -222,14 +269,17 @@ export const ExceptionDetailPage: React.FC<ExceptionDetailPageProps> = ({ apiCli
                 fontSize: '13px',
                 fontWeight: 700,
                 cursor: 'pointer',
+                transition: 'opacity 0.15s ease',
               }}
             >
-              {isSubmitting ? 'Recording Resolution...' : '✓ Confirm & Clear Alert'}
+              <Check size={16} strokeWidth={2.5} />
+              {isSubmitting ? 'Recording Resolution...' : 'Confirm & Clear Alert'}
             </button>
           </div>
         ) : (
-          <div style={{ padding: '16px 20px', backgroundColor: colors.successLight, borderRadius: radii.md, border: `1px solid ${colors.successBorder}`, color: colors.success, fontWeight: 700, fontSize: '14px' }}>
-            ✓ Safety Alert Resolved. Reason recorded: "{resolveReason || 'Verified with attendant'}".
+          <div style={{ padding: '16px 20px', backgroundColor: colors.successLight, borderRadius: radii.md, border: `1px solid ${colors.successBorder}`, color: colors.success, fontWeight: 700, fontSize: '14px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <CircleCheck size={18} strokeWidth={2} />
+            Safety Alert Resolved. Reason recorded: "{resolveReason || 'Verified with attendant'}".
           </div>
         )}
 

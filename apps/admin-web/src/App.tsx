@@ -1,6 +1,7 @@
 import React from 'react';
 import { ApiClient } from '@school-transport-platform/client-sdk';
 import { RouterProvider, useRouter } from './router/Router';
+import { ThemeProvider } from './theme/ThemeContext';
 import { AdminLayout } from './components/layout/AdminLayout';
 import { DemoControlPanel } from './components/DemoControlPanel';
 
@@ -147,9 +148,11 @@ const AppRoutes: React.FC = () => {
 
 export const App: React.FC = () => {
   return (
-    <RouterProvider>
-      <AppRoutes />
-    </RouterProvider>
+    <ThemeProvider>
+      <RouterProvider>
+        <AppRoutes />
+      </RouterProvider>
+    </ThemeProvider>
   );
 };
 

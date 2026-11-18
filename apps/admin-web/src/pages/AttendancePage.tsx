@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
 import { useRouter } from '../router/Router';
-import { colors, radii, shadows } from '../theme/design-system';
+import { useTheme } from '../theme/ThemeContext';
+import { radii, shadows } from '../theme/design-system';
 import { StatusBadge } from '../components/ui/SharedComponents';
 import { ApiClient } from '@school-transport-platform/client-sdk';
+import { SunMedium, Sunset, CircleCheck, TriangleAlert, UsersRound, GraduationCap, Check } from 'lucide-react';
 
 interface AttendancePageProps {
   apiClient: ApiClient;
@@ -10,6 +12,7 @@ interface AttendancePageProps {
 
 export const AttendancePage: React.FC<AttendancePageProps> = ({ apiClient }) => {
   const { navigate } = useRouter();
+  const { colors, isDark } = useTheme();
   const [session, setSession] = useState<'MORNING' | 'AFTERNOON'>('MORNING');
 
   const [classes] = useState([
@@ -25,7 +28,8 @@ export const AttendancePage: React.FC<AttendancePageProps> = ({ apiClient }) => 
       {/* Title */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
         <div>
-          <div style={{ fontSize: '13px', fontWeight: 700, color: colors.primary, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+          <div style={{ fontSize: '13px', fontWeight: 700, color: colors.primary, textTransform: 'uppercase', letterSpacing: '0.04em', display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <UsersRound size={15} strokeWidth={2} />
             Daily Passenger Ledger
           </div>
           <h1 style={{ fontSize: '28px', fontWeight: 800, color: colors.textPrimary, margin: '4px 0 2px 0', letterSpacing: '-0.02em' }}>
@@ -37,36 +41,48 @@ export const AttendancePage: React.FC<AttendancePageProps> = ({ apiClient }) => 
         </div>
 
         {/* Morning vs Afternoon Switcher */}
-        <div style={{ display: 'flex', backgroundColor: '#e2e8f0', padding: '4px', borderRadius: radii.md }}>
+        <div style={{ display: 'flex', backgroundColor: colors.canvasBg, padding: '4px', borderRadius: radii.md, border: `1px solid ${colors.borderLight}` }}>
           <button
             onClick={() => setSession('MORNING')}
             style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
               padding: '6px 16px',
               borderRadius: radii.sm,
               border: 'none',
-              backgroundColor: session === 'MORNING' ? '#ffffff' : 'transparent',
+              backgroundColor: session === 'MORNING' ? colors.card : 'transparent',
               color: session === 'MORNING' ? colors.primary : colors.textSecondary,
+              boxShadow: session === 'MORNING' ? shadows.sm : 'none',
               fontSize: '12px',
               fontWeight: 700,
               cursor: 'pointer',
+              transition: 'all 0.15s ease',
             }}
           >
-            ☀️ Morning Pickup
+            <SunMedium size={14} strokeWidth={2} />
+            Morning Pickup
           </button>
           <button
             onClick={() => setSession('AFTERNOON')}
             style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
               padding: '6px 16px',
               borderRadius: radii.sm,
               border: 'none',
-              backgroundColor: session === 'AFTERNOON' ? '#ffffff' : 'transparent',
+              backgroundColor: session === 'AFTERNOON' ? colors.card : 'transparent',
               color: session === 'AFTERNOON' ? colors.primary : colors.textSecondary,
+              boxShadow: session === 'AFTERNOON' ? shadows.sm : 'none',
               fontSize: '12px',
               fontWeight: 700,
               cursor: 'pointer',
+              transition: 'all 0.15s ease',
             }}
           >
-            🌙 Afternoon Drop
+            <Sunset size={14} strokeWidth={2} />
+            Afternoon Drop
           </button>
         </div>
       </div>
@@ -76,7 +92,10 @@ export const AttendancePage: React.FC<AttendancePageProps> = ({ apiClient }) => 
         <div style={{ padding: '20px 24px', backgroundColor: colors.card, borderRadius: radii.lg, border: `1px solid ${colors.border}`, boxShadow: shadows.card }}>
           <div style={{ fontSize: '12px', color: colors.textSecondary, fontWeight: 700, textTransform: 'uppercase' }}>Total Enrolled Today</div>
           <div style={{ fontSize: '30px', fontWeight: 800, color: colors.textPrimary, marginTop: '4px' }}>428</div>
-          <div style={{ fontSize: '12px', color: colors.success, marginTop: '4px' }}>✓ 100% Transport Roster Active</div>
+          <div style={{ fontSize: '12px', color: colors.success, marginTop: '4px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+            <CircleCheck size={13} strokeWidth={2} />
+            100% Transport Roster Active
+          </div>
         </div>
 
         <div style={{ padding: '20px 24px', backgroundColor: colors.card, borderRadius: radii.lg, border: `1px solid ${colors.border}`, boxShadow: shadows.card }}>
@@ -88,7 +107,10 @@ export const AttendancePage: React.FC<AttendancePageProps> = ({ apiClient }) => 
         <div style={{ padding: '20px 24px', backgroundColor: colors.card, borderRadius: radii.lg, border: `1px solid ${colors.border}`, boxShadow: shadows.card }}>
           <div style={{ fontSize: '12px', color: colors.textSecondary, fontWeight: 700, textTransform: 'uppercase' }}>Afternoon Exit Status</div>
           <div style={{ fontSize: '30px', fontWeight: 800, color: colors.primary, marginTop: '4px' }}>426 / 428</div>
-          <div style={{ fontSize: '12px', color: colors.warning, marginTop: '4px' }}>⚠️ 2 Need Attention</div>
+          <div style={{ fontSize: '12px', color: colors.warning, marginTop: '4px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+            <TriangleAlert size={13} strokeWidth={2} />
+            2 Need Attention
+          </div>
         </div>
       </div>
 
@@ -103,7 +125,8 @@ export const AttendancePage: React.FC<AttendancePageProps> = ({ apiClient }) => 
         }}
       >
         <div style={{ padding: '16px 20px', borderBottom: `1px solid ${colors.border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <h3 style={{ fontSize: '16px', fontWeight: 700, color: colors.textPrimary, margin: 0 }}>
+          <h3 style={{ fontSize: '16px', fontWeight: 700, color: colors.textPrimary, margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <GraduationCap size={18} strokeWidth={2} color={colors.primary} />
             Accountability by Academic Grade &amp; Section
           </h3>
           <span style={{ fontSize: '12px', color: colors.textSecondary }}>5 Sections Reporting</span>
@@ -138,8 +161,7 @@ export const AttendancePage: React.FC<AttendancePageProps> = ({ apiClient }) => 
 
               <div>
                 <StatusBadge
-                  type={cls.status.includes('Attention') ? 'warning' : 'success'}
-                  icon="●"
+                  type={cls.status.includes('Attention') ? 'danger' : 'success'}
                   label={cls.status}
                 />
               </div>
@@ -150,9 +172,10 @@ export const AttendancePage: React.FC<AttendancePageProps> = ({ apiClient }) => 
                   style={{
                     padding: '6px 12px',
                     borderRadius: radii.md,
-                    backgroundColor: '#ffffff',
                     border: `1px solid ${colors.border}`,
-                    fontSize: '12px',
+                    backgroundColor: colors.canvasBg,
+                    color: colors.primary,
+                    fontSize: '11px',
                     fontWeight: 700,
                     cursor: 'pointer',
                   }}

@@ -1,8 +1,20 @@
 import React, { useState } from 'react';
 import { useRouter } from '../router/Router';
-import { colors, radii, shadows } from '../theme/design-system';
+import { useTheme } from '../theme/ThemeContext';
+import { radii, shadows } from '../theme/design-system';
 import { StatusBadge, JourneyTimeline } from '../components/ui/SharedComponents';
+import { RfidIcon } from '../components/ui/RfidIcon';
 import { ApiClient } from '@school-transport-platform/client-sdk';
+import {
+  ArrowLeft,
+  UserRound,
+  BusFront,
+  Route,
+  MapPin,
+  Phone,
+  ShieldCheck,
+  Calendar,
+} from 'lucide-react';
 
 interface StudentProfilePageProps {
   apiClient: ApiClient;
@@ -10,6 +22,7 @@ interface StudentProfilePageProps {
 
 export const StudentProfilePage: React.FC<StudentProfilePageProps> = ({ apiClient }) => {
   const { getParam, navigate } = useRouter();
+  const { colors } = useTheme();
   const studentId = getParam('id') || 'c1111111-1111-1111-1111-111111111101';
 
   const [student] = useState({
@@ -18,9 +31,9 @@ export const StudentProfilePage: React.FC<StudentProfilePageProps> = ({ apiClien
     admissionNumber: 'ADM-2024-001',
     className: 'Class 7-B',
     busNumber: 'Bus 12',
-    busReg: 'KA-01-EXP-9999',
+    busReg: 'UP-16-BT-9912',
     routeName: 'North Corridor Express',
-    assignedStop: 'Stop 1: Sector 62 Metro Gate #2',
+    assignedStop: 'Sector 62 Metro Gate #2',
     rfidCardId: 'CARD-AARAV-01',
     rfidStatus: 'ACTIVE',
     todayStatus: 'BOARDED',
@@ -34,7 +47,7 @@ export const StudentProfilePage: React.FC<StudentProfilePageProps> = ({ apiClien
   const timelineSteps = [
     { label: 'Expected at Stop', sublabel: 'Sector 62 Metro Gate #2', time: '07:35 AM', status: 'completed' as const },
     { label: 'Boarded Bus 12', sublabel: 'RFID Card Verified by hardware scanner', time: '07:42 AM', status: 'completed' as const },
-    { label: 'In Transit', sublabel: 'Bus 12 moving towards Oakridge Campus (Speed: 38 km/h)', time: '07:49 AM', status: 'current' as const },
+    { label: 'In Transit', sublabel: 'Bus 12 moving towards Oakridge Campus', time: '07:49 AM', status: 'current' as const },
     { label: 'School Arrival', sublabel: 'Oakridge Campus Terminus', time: '~07:58 AM', status: 'pending' as const },
   ];
 
@@ -46,36 +59,39 @@ export const StudentProfilePage: React.FC<StudentProfilePageProps> = ({ apiClien
   ];
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', maxWidth: '1000px' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', maxWidth: '1000px' }}>
       {/* Back button */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
         <button
           onClick={() => navigate('/students')}
           style={{
-            padding: '8px 14px',
-            backgroundColor: '#ffffff',
+            padding: '7px 12px',
+            backgroundColor: colors.card,
             border: `1px solid ${colors.border}`,
-            borderRadius: radii.md,
-            fontSize: '13px',
-            fontWeight: 700,
+            borderRadius: radii.sm,
+            fontSize: '12px',
+            fontWeight: 600,
+            color: colors.textPrimary,
             cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px',
             boxShadow: shadows.sm,
           }}
         >
-          ← Back to Students
+          <ArrowLeft size={14} strokeWidth={2} />
+          <span>Back to Students</span>
         </button>
-        <span style={{ fontSize: '13px', color: colors.textMuted }}>/</span>
-        <span style={{ fontSize: '13px', fontWeight: 700, color: colors.textSecondary }}>Student Profile</span>
       </div>
 
       {/* Main Student Card */}
       <div
         style={{
           backgroundColor: colors.card,
-          borderRadius: radii.xl,
+          borderRadius: radii.lg,
           border: `1px solid ${colors.border}`,
-          padding: '28px 32px',
-          boxShadow: shadows.md,
+          padding: '24px 28px',
+          boxShadow: shadows.sm,
           display: 'flex',
           flexDirection: 'column',
           gap: '24px',
@@ -86,29 +102,27 @@ export const StudentProfilePage: React.FC<StudentProfilePageProps> = ({ apiClien
           <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
             <div
               style={{
-                width: '60px',
-                height: '60px',
+                width: '52px',
+                height: '52px',
                 borderRadius: '50%',
                 backgroundColor: colors.primaryLight,
-                border: `2px solid ${colors.primaryBorder}`,
+                border: `1px solid ${colors.primaryBorder}`,
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                fontSize: '26px',
-                fontWeight: 800,
                 color: colors.primary,
               }}
             >
-              A
+              <UserRound size={26} strokeWidth={2} />
             </div>
             <div>
-              <div style={{ fontSize: '11px', fontWeight: 800, color: colors.primary, textTransform: 'uppercase' }}>
-                Student Transportation Profile
+              <div style={{ fontSize: '10px', fontWeight: 700, color: colors.primary, textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+                Transportation Profile
               </div>
-              <h1 style={{ fontSize: '26px', fontWeight: 800, color: colors.textPrimary, margin: '2px 0 2px 0' }}>
+              <h1 style={{ fontSize: '24px', fontWeight: 800, color: colors.textPrimary, margin: '2px 0 2px 0', letterSpacing: '-0.02em' }}>
                 {student.name}
               </h1>
-              <div style={{ fontSize: '13px', fontWeight: 600, color: colors.textSecondary }}>
+              <div style={{ fontSize: '13px', color: colors.textSecondary }}>
                 {student.className} &bull; Admission: {student.admissionNumber}
               </div>
             </div>
@@ -118,58 +132,79 @@ export const StudentProfilePage: React.FC<StudentProfilePageProps> = ({ apiClien
             <button
               onClick={() => navigate(`/journeys/${student.id}`)}
               style={{
-                padding: '9px 16px',
+                padding: '8px 14px',
                 backgroundColor: colors.primary,
-                color: '#ffffff',
-                borderRadius: radii.md,
+                color: colors.textWhite,
+                borderRadius: radii.sm,
                 border: 'none',
-                fontSize: '13px',
+                fontSize: '12px',
                 fontWeight: 700,
                 cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
               }}
             >
-              🗺️ Live Journey Passport
+              <Route size={14} strokeWidth={2} />
+              <span>Journey Passport</span>
             </button>
           </div>
         </div>
 
         {/* 2-Column: Key Transit Details & Today's Journey */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
           {/* Left: Core Assignment & Guardians */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
             {/* Transit Route Assignment */}
-            <div style={{ padding: '18px', backgroundColor: '#f8fafc', borderRadius: radii.lg, border: `1px solid ${colors.borderLight}` }}>
-              <h4 style={{ fontSize: '12px', fontWeight: 800, color: colors.textSecondary, textTransform: 'uppercase', margin: '0 0 10px 0' }}>
+            <div style={{ padding: '16px', backgroundColor: colors.bg, borderRadius: radii.md, border: `1px solid ${colors.borderLight}` }}>
+              <div style={{ fontSize: '11px', fontWeight: 700, color: colors.textSecondary, textTransform: 'uppercase', marginBottom: '8px' }}>
                 Transport Assignment
-              </h4>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '13px' }}>
-                <div>🚌 Assigned Bus: <strong style={{ color: colors.textPrimary }}>{student.busNumber}</strong> ({student.busReg})</div>
-                <div>🛣️ Corridor: <strong style={{ color: colors.textPrimary }}>{student.routeName}</strong></div>
-                <div>🚏 Designated Stop: <strong style={{ color: colors.primary }}>{student.assignedStop}</strong></div>
-                <div>💳 RFID Card Token: <strong style={{ color: colors.textPrimary }}>{student.rfidCardId}</strong> (Active)</div>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '12px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <BusFront size={13} strokeWidth={1.8} color={colors.primary} />
+                  <span>Assigned Bus: <strong style={{ color: colors.textPrimary }}>{student.busNumber}</strong> ({student.busReg})</span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <Route size={13} strokeWidth={1.8} color={colors.primary} />
+                  <span>Route: <strong style={{ color: colors.textPrimary }}>{student.routeName}</strong></span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <MapPin size={13} strokeWidth={1.8} color={colors.primary} />
+                  <span>Stop Area: <strong style={{ color: colors.primary }}>{student.assignedStop}</strong></span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <RfidIcon size={13} color={colors.primary} />
+                  <span>RFID Card: <strong style={{ color: colors.textPrimary }}>{student.rfidCardId}</strong></span>
+                </div>
               </div>
             </div>
 
             {/* Guardian Contacts */}
-            <div style={{ padding: '18px', backgroundColor: '#f8fafc', borderRadius: radii.lg, border: `1px solid ${colors.borderLight}` }}>
-              <h4 style={{ fontSize: '12px', fontWeight: 800, color: colors.textSecondary, textTransform: 'uppercase', margin: '0 0 10px 0' }}>
+            <div style={{ padding: '16px', backgroundColor: colors.bg, borderRadius: radii.md, border: `1px solid ${colors.borderLight}` }}>
+              <div style={{ fontSize: '11px', fontWeight: 700, color: colors.textSecondary, textTransform: 'uppercase', marginBottom: '8px' }}>
                 Authorized Guardians
-              </h4>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '13px' }}>
-                <div>👩 Primary: <strong style={{ color: colors.textPrimary }}>{student.guardianName}</strong> ({student.guardianRelation})</div>
-                <div>📞 Phone: <strong style={{ color: colors.textPrimary }}>{student.guardianPhone}</strong></div>
-                <div>🚨 Emergency: <span style={{ color: colors.textSecondary }}>{student.emergencyContact}</span></div>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '12px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <UserRound size={13} strokeWidth={1.8} color={colors.primary} />
+                  <span>Primary: <strong style={{ color: colors.textPrimary }}>{student.guardianName}</strong> ({student.guardianRelation})</span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <Phone size={13} strokeWidth={1.8} color={colors.primary} />
+                  <span>Phone: <strong style={{ color: colors.textPrimary }}>{student.guardianPhone}</strong></span>
+                </div>
               </div>
             </div>
           </div>
 
           {/* Right: Today's Journey Stepper */}
-          <div style={{ padding: '20px', backgroundColor: '#ffffff', borderRadius: radii.lg, border: `1px solid ${colors.border}` }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-              <h4 style={{ fontSize: '13px', fontWeight: 800, color: colors.textPrimary, textTransform: 'uppercase', margin: 0 }}>
-                Today's Commute Status
-              </h4>
-              <StatusBadge type="info" icon="●" label="Boarded (On Bus 12)" />
+          <div style={{ padding: '16px', backgroundColor: colors.card, borderRadius: radii.md, border: `1px solid ${colors.border}` }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
+              <span style={{ fontSize: '12px', fontWeight: 700, color: colors.textPrimary, textTransform: 'uppercase' }}>
+                Today's Transit Status
+              </span>
+              <StatusBadge type="info" label="On Bus 12" />
             </div>
             <JourneyTimeline steps={timelineSteps} />
           </div>
@@ -177,10 +212,10 @@ export const StudentProfilePage: React.FC<StudentProfilePageProps> = ({ apiClien
 
         {/* Commute History Table */}
         <div style={{ paddingTop: '16px', borderTop: `1px solid ${colors.border}` }}>
-          <h4 style={{ fontSize: '13px', fontWeight: 800, color: colors.textPrimary, textTransform: 'uppercase', margin: '0 0 12px 0' }}>
+          <div style={{ fontSize: '12px', fontWeight: 700, color: colors.textPrimary, textTransform: 'uppercase', marginBottom: '10px' }}>
             Past Commute Records
-          </h4>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
             {history.map((h, i) => (
               <div
                 key={i}
@@ -188,11 +223,11 @@ export const StudentProfilePage: React.FC<StudentProfilePageProps> = ({ apiClien
                   display: 'flex',
                   justifyContent: 'space-between',
                   alignItems: 'center',
-                  padding: '12px 16px',
-                  backgroundColor: '#f8fafc',
-                  borderRadius: radii.md,
+                  padding: '10px 14px',
+                  backgroundColor: colors.bg,
+                  borderRadius: radii.sm,
                   border: `1px solid ${colors.borderLight}`,
-                  fontSize: '13px',
+                  fontSize: '12px',
                 }}
               >
                 <div>

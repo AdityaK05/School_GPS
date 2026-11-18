@@ -1,19 +1,23 @@
 import React, { useState } from 'react';
-import { colors, radii, shadows } from '../theme/design-system';
+import { useTheme } from '../theme/ThemeContext';
+import { radii, shadows } from '../theme/design-system';
 import { ApiClient } from '@school-transport-platform/client-sdk';
+import { Settings2, School, UsersRound, Radio, Shield, Check } from 'lucide-react';
 
 interface SettingsPageProps {
   apiClient: ApiClient;
 }
 
 export const SettingsPage: React.FC<SettingsPageProps> = () => {
+  const { colors, isDark } = useTheme();
   const [activeTab, setActiveTab] = useState<'SCHOOL' | 'USERS' | 'DEVICES' | 'SAFETY'>('SCHOOL');
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', maxWidth: '1000px' }}>
       {/* Header */}
       <div>
-        <div style={{ fontSize: '13px', fontWeight: 700, color: colors.primary, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+        <div style={{ fontSize: '13px', fontWeight: 700, color: colors.primary, textTransform: 'uppercase', letterSpacing: '0.04em', display: 'flex', alignItems: 'center', gap: '6px' }}>
+          <Settings2 size={15} strokeWidth={2} />
           Platform Configuration
         </div>
         <h1 style={{ fontSize: '28px', fontWeight: 800, color: colors.textPrimary, margin: '4px 0 2px 0', letterSpacing: '-0.02em' }}>
@@ -25,39 +29,49 @@ export const SettingsPage: React.FC<SettingsPageProps> = () => {
       </div>
 
       {/* Settings Navigation Tabs */}
-      <div style={{ display: 'flex', gap: '8px', borderBottom: `1px solid ${colors.border}`, paddingBottom: '8px' }}>
+      <div style={{ display: 'flex', gap: '8px', borderBottom: `1px solid ${colors.border}`, paddingBottom: '8px', overflowX: 'auto' }}>
         {[
-          { id: 'SCHOOL', label: '🏫 School Profile' },
-          { id: 'USERS', label: '👥 Users & Roles' },
-          { id: 'DEVICES', label: '📡 Hardware Devices' },
-          { id: 'SAFETY', label: '🛡️ Safety Rules' },
-        ].map((tab) => (
-          <button
-            key={tab.id}
-            onClick={() => setActiveTab(tab.id as any)}
-            style={{
-              padding: '8px 16px',
-              borderRadius: radii.md,
-              border: 'none',
-              backgroundColor: activeTab === tab.id ? colors.primaryLight : 'transparent',
-              color: activeTab === tab.id ? colors.primary : colors.textSecondary,
-              fontSize: '13px',
-              fontWeight: 700,
-              cursor: 'pointer',
-            }}
-          >
-            {tab.label}
-          </button>
-        ))}
+          { id: 'SCHOOL', label: 'School Profile', icon: School },
+          { id: 'USERS', label: 'Users & Roles', icon: UsersRound },
+          { id: 'DEVICES', label: 'Hardware Devices', icon: Radio },
+          { id: 'SAFETY', label: 'Safety Rules', icon: Shield },
+        ].map((tab) => {
+          const IconComp = tab.icon;
+          return (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id as any)}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '8px',
+                padding: '8px 16px',
+                borderRadius: radii.md,
+                border: 'none',
+                backgroundColor: activeTab === tab.id ? colors.primaryLight : 'transparent',
+                color: activeTab === tab.id ? colors.primary : colors.textSecondary,
+                fontSize: '13px',
+                fontWeight: 700,
+                cursor: 'pointer',
+                whiteSpace: 'nowrap',
+                transition: 'all 0.15s ease',
+              }}
+            >
+              <IconComp size={15} strokeWidth={2} />
+              {tab.label}
+            </button>
+          );
+        })}
       </div>
 
       {/* Tab 1: School Profile */}
       {activeTab === 'SCHOOL' && (
         <div style={{ backgroundColor: colors.card, borderRadius: radii.xl, border: `1px solid ${colors.border}`, padding: '28px', boxShadow: shadows.card, display: 'flex', flexDirection: 'column', gap: '18px' }}>
-          <h3 style={{ fontSize: '16px', fontWeight: 800, color: colors.textPrimary, margin: 0 }}>
+          <h3 style={{ fontSize: '16px', fontWeight: 800, color: colors.textPrimary, margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <School size={18} strokeWidth={2} color={colors.primary} />
             Institutional Profile
           </h3>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '16px' }}>
             <div>
               <label style={{ fontSize: '12px', fontWeight: 700, color: colors.textSecondary, display: 'block', marginBottom: '6px' }}>
                 School Name
@@ -65,7 +79,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = () => {
               <input
                 type="text"
                 defaultValue="Oakridge International School"
-                style={{ width: '100%', padding: '10px 12px', borderRadius: radii.md, border: `1px solid ${colors.border}`, fontSize: '13px', color: colors.textPrimary }}
+                style={{ width: '100%', padding: '10px 12px', borderRadius: radii.md, border: `1px solid ${colors.border}`, backgroundColor: colors.canvasBg, fontSize: '13px', color: colors.textPrimary }}
               />
             </div>
             <div>
@@ -76,7 +90,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = () => {
                 type="text"
                 defaultValue="OAK-NOIDA-01"
                 disabled
-                style={{ width: '100%', padding: '10px 12px', borderRadius: radii.md, border: `1px solid ${colors.border}`, fontSize: '13px', backgroundColor: '#f8fafc', color: colors.textMuted }}
+                style={{ width: '100%', padding: '10px 12px', borderRadius: radii.md, border: `1px solid ${colors.border}`, fontSize: '13px', backgroundColor: colors.canvasBg, color: colors.textMuted }}
               />
             </div>
             <div>
@@ -87,7 +101,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = () => {
                 type="text"
                 defaultValue="Asia/Kolkata (IST +05:30)"
                 disabled
-                style={{ width: '100%', padding: '10px 12px', borderRadius: radii.md, border: `1px solid ${colors.border}`, fontSize: '13px', backgroundColor: '#f8fafc', color: colors.textMuted }}
+                style={{ width: '100%', padding: '10px 12px', borderRadius: radii.md, border: `1px solid ${colors.border}`, fontSize: '13px', backgroundColor: colors.canvasBg, color: colors.textMuted }}
               />
             </div>
             <div>
@@ -97,7 +111,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = () => {
               <input
                 type="text"
                 defaultValue="+91 120 456 7890"
-                style={{ width: '100%', padding: '10px 12px', borderRadius: radii.md, border: `1px solid ${colors.border}`, fontSize: '13px', color: colors.textPrimary }}
+                style={{ width: '100%', padding: '10px 12px', borderRadius: radii.md, border: `1px solid ${colors.border}`, backgroundColor: colors.canvasBg, fontSize: '13px', color: colors.textPrimary }}
               />
             </div>
           </div>
@@ -105,6 +119,9 @@ export const SettingsPage: React.FC<SettingsPageProps> = () => {
             onClick={() => alert('School profile settings saved successfully.')}
             style={{
               alignSelf: 'flex-start',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
               padding: '9px 20px',
               backgroundColor: colors.primary,
               color: '#ffffff',
@@ -116,6 +133,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = () => {
               marginTop: '8px',
             }}
           >
+            <Check size={15} strokeWidth={2.5} />
             Save Changes
           </button>
         </div>
@@ -124,7 +142,8 @@ export const SettingsPage: React.FC<SettingsPageProps> = () => {
       {/* Tab 2: Users & Roles */}
       {activeTab === 'USERS' && (
         <div style={{ backgroundColor: colors.card, borderRadius: radii.xl, border: `1px solid ${colors.border}`, padding: '28px', boxShadow: shadows.card, display: 'flex', flexDirection: 'column', gap: '16px' }}>
-          <h3 style={{ fontSize: '16px', fontWeight: 800, color: colors.textPrimary, margin: 0 }}>
+          <h3 style={{ fontSize: '16px', fontWeight: 800, color: colors.textPrimary, margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <UsersRound size={18} strokeWidth={2} color={colors.primary} />
             Role-Based Access Control (RBAC)
           </h3>
           <p style={{ fontSize: '13px', color: colors.textSecondary, margin: 0 }}>
@@ -137,7 +156,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = () => {
               { role: 'Bus Attendant', users: '18 Users', desc: 'In-bus NFC/RFID passenger scanning, offline boarding manifest sync.' },
               { role: 'Parent / Guardian', users: '428 Registered', desc: 'Read-only live transit whereabouts for authorized children only.' },
             ].map((r, i) => (
-              <div key={i} style={{ padding: '14px 18px', backgroundColor: '#f8fafc', borderRadius: radii.md, border: `1px solid ${colors.borderLight}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div key={i} style={{ padding: '14px 18px', backgroundColor: colors.canvasBg, borderRadius: radii.md, border: `1px solid ${colors.borderLight}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
                 <div>
                   <div style={{ fontSize: '14px', fontWeight: 700, color: colors.textPrimary }}>{r.role}</div>
                   <div style={{ fontSize: '12px', color: colors.textSecondary, marginTop: '2px' }}>{r.desc}</div>
@@ -154,18 +173,19 @@ export const SettingsPage: React.FC<SettingsPageProps> = () => {
       {/* Tab 3: Hardware Devices */}
       {activeTab === 'DEVICES' && (
         <div style={{ backgroundColor: colors.card, borderRadius: radii.xl, border: `1px solid ${colors.border}`, padding: '28px', boxShadow: shadows.card, display: 'flex', flexDirection: 'column', gap: '16px' }}>
-          <h3 style={{ fontSize: '16px', fontWeight: 800, color: colors.textPrimary, margin: 0 }}>
+          <h3 style={{ fontSize: '16px', fontWeight: 800, color: colors.textPrimary, margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <Radio size={18} strokeWidth={2} color={colors.primary} />
             Assigned GPS &amp; RFID Hardware
           </h3>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-            <div style={{ padding: '14px 18px', backgroundColor: '#f8fafc', borderRadius: radii.md, border: `1px solid ${colors.borderLight}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div style={{ padding: '14px 18px', backgroundColor: colors.canvasBg, borderRadius: radii.md, border: `1px solid ${colors.borderLight}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
               <div>
                 <div style={{ fontSize: '13px', fontWeight: 700, color: colors.textPrimary }}>GPS Telematics Tracker: GPS_TELT_01</div>
                 <div style={{ fontSize: '11px', color: colors.textSecondary }}>Assigned: Bus 12 &bull; Protocol: Teltonika FMB920 &bull; Interval: 15s</div>
               </div>
               <span style={{ fontSize: '11px', fontWeight: 700, color: colors.success }}>● Online (12 Sats)</span>
             </div>
-            <div style={{ padding: '14px 18px', backgroundColor: '#f8fafc', borderRadius: radii.md, border: `1px solid ${colors.borderLight}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div style={{ padding: '14px 18px', backgroundColor: colors.canvasBg, borderRadius: radii.md, border: `1px solid ${colors.borderLight}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
               <div>
                 <div style={{ fontSize: '13px', fontWeight: 700, color: colors.textPrimary }}>RFID Hardware Reader: RFID_READER_BUS_42</div>
                 <div style={{ fontSize: '11px', color: colors.textSecondary }}>Assigned: Bus 12 Door Reader &bull; Protocol: ISO/IEC 14443 Type A (13.56MHz)</div>
@@ -179,13 +199,14 @@ export const SettingsPage: React.FC<SettingsPageProps> = () => {
       {/* Tab 4: Safety Rules */}
       {activeTab === 'SAFETY' && (
         <div style={{ backgroundColor: colors.card, borderRadius: radii.xl, border: `1px solid ${colors.border}`, padding: '28px', boxShadow: shadows.card, display: 'flex', flexDirection: 'column', gap: '16px' }}>
-          <h3 style={{ fontSize: '16px', fontWeight: 800, color: colors.textPrimary, margin: 0 }}>
+          <h3 style={{ fontSize: '16px', fontWeight: 800, color: colors.textPrimary, margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <Shield size={18} strokeWidth={2} color={colors.primary} />
             Deterministic Safety Thresholds
           </h3>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-            <div style={{ padding: '14px 18px', backgroundColor: '#f8fafc', borderRadius: radii.md, border: `1px solid ${colors.borderLight}` }}>
+            <div style={{ padding: '14px 18px', backgroundColor: colors.canvasBg, borderRadius: radii.md, border: `1px solid ${colors.borderLight}` }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{ fontSize: '13px', fontWeight: 700, color: colors.textPrimary }}>GPS Freshness Gate</span>
+                <span style={{ fontSize: '13px', fontWeight: 700, color: colors.textPrimary }}>Location Freshness Gate</span>
                 <span style={{ fontSize: '13px', fontWeight: 800, color: colors.primary }}>60 seconds</span>
               </div>
               <div style={{ fontSize: '12px', color: colors.textSecondary, marginTop: '4px' }}>
@@ -193,7 +214,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = () => {
               </div>
             </div>
 
-            <div style={{ padding: '14px 18px', backgroundColor: '#f8fafc', borderRadius: radii.md, border: `1px solid ${colors.borderLight}` }}>
+            <div style={{ padding: '14px 18px', backgroundColor: colors.canvasBg, borderRadius: radii.md, border: `1px solid ${colors.borderLight}` }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <span style={{ fontSize: '13px', fontWeight: 700, color: colors.textPrimary }}>PostGIS Geofence Arrival Buffer</span>
                 <span style={{ fontSize: '13px', fontWeight: 800, color: colors.primary }}>50 meters</span>
@@ -203,7 +224,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = () => {
               </div>
             </div>
 
-            <div style={{ padding: '14px 18px', backgroundColor: '#f8fafc', borderRadius: radii.md, border: `1px solid ${colors.borderLight}` }}>
+            <div style={{ padding: '14px 18px', backgroundColor: colors.canvasBg, borderRadius: radii.md, border: `1px solid ${colors.borderLight}` }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <span style={{ fontSize: '13px', fontWeight: 700, color: colors.textPrimary }}>Missing Exit Grace Period</span>
                 <span style={{ fontSize: '13px', fontWeight: 800, color: colors.danger }}>5 minutes</span>
