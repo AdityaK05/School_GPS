@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useRouter } from '../../router/Router';
 import { useTheme } from '../../theme/ThemeContext';
 import { radii, shadows } from '../../theme/design-system';
+import logoImg from '../../assets/logo.png';
 import {
   House,
   Route,
@@ -83,7 +84,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 8px 20px 8px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
             <img
-              src="/logo.png"
+              src={logoImg}
               alt="School-GPS Logo"
               style={{
                 width: '34px',
@@ -295,7 +296,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           <img
-            src="/logo.png"
+            src={logoImg}
             alt="School-GPS Logo"
             style={{
               width: '28px',

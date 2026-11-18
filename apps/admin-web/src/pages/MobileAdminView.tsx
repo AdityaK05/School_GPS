@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useRouter } from '../router/Router';
 import { useTheme } from '../theme/ThemeContext';
 import { radii, shadows } from '../theme/design-system';
+import logoImg from '../assets/logo.png';
 import { StatusBadge } from '../components/ui/SharedComponents';
 import {
   Navigation,
@@ -59,7 +60,7 @@ export const MobileAdminView: React.FC = () => {
         <div style={{ padding: '12px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: `1px solid ${colors.borderLight}` }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <img
-              src="/logo.png"
+              src={logoImg}
               alt="School-GPS Logo"
               style={{
                 width: '28px',

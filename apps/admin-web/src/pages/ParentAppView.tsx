@@ -2,6 +2,7 @@ import React, { useState, useRef } from 'react';
 import { useRouter } from '../router/Router';
 import { useTheme } from '../theme/ThemeContext';
 import { radii, shadows } from '../theme/design-system';
+import logoImg from '../assets/logo.png';
 import { StatusBadge } from '../components/ui/SharedComponents';
 import { InteractiveMap, MapMarker } from '../components/InteractiveMap';
 import { JourneyLine } from '../components/ui/JourneyLine';
@@ -167,7 +168,7 @@ export const ParentAppView: React.FC<{ apiClient: ApiClient }> = () => {
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <img
-              src="/logo.png"
+              src={logoImg}
               alt="School-GPS Logo"
               style={{
                 width: '32px',
