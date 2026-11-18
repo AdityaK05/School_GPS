@@ -58,20 +58,19 @@ export const MobileAdminView: React.FC = () => {
         {/* Top Header */}
         <div style={{ padding: '12px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: `1px solid ${colors.borderLight}` }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <div
+            <img
+              src="/logo.png"
+              alt="School-GPS Logo"
               style={{
                 width: '28px',
                 height: '28px',
                 borderRadius: '50%',
-                backgroundColor: colors.primary,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: '#ffffff',
+                objectFit: 'contain',
+                backgroundColor: '#ffffff',
+                border: `1px solid ${colors.borderLight}`,
+                padding: '2px',
               }}
-            >
-              <Navigation size={15} strokeWidth={2.2} fill="#ffffff" />
-            </div>
+            />
             <span style={{ fontSize: '17px', fontWeight: 800, color: colors.textPrimary, letterSpacing: '-0.02em' }}>
               School-GPS
             </span>

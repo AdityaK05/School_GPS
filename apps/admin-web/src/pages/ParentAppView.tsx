@@ -166,20 +166,19 @@ export const ParentAppView: React.FC<{ apiClient: ApiClient }> = () => {
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <div
+            <img
+              src="/logo.png"
+              alt="School-GPS Logo"
               style={{
                 width: '32px',
                 height: '32px',
                 borderRadius: '50%',
-                backgroundColor: colors.primary,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: '#ffffff',
+                objectFit: 'contain',
+                backgroundColor: '#ffffff',
+                border: `1px solid ${colors.borderLight}`,
+                padding: '2px',
               }}
-            >
-              <Shield size={16} strokeWidth={2.2} />
-            </div>
+            />
             <span style={{ fontSize: '16px', fontWeight: 800, color: colors.textPrimary, letterSpacing: '-0.02em' }}>
               School-GPS
             </span>

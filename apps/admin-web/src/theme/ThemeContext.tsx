@@ -49,26 +49,26 @@ export interface ThemeColors {
 }
 
 export const lightColors: ThemeColors = {
-  bg: '#f8fafc',
+  bg: '#f8fafc', // 60% — #F8FAFC Soft White
   canvasBg: '#f8fafc',
   card: '#ffffff',
-  cardHover: '#f1f5f9',
-  sidebar: '#0d1938',
-  sidebarActive: 'rgba(37, 99, 235, 0.14)',
+  cardHover: '#f8fafc',
+  sidebar: '#0f172a', // 30% — #0F172A Deep Navy
+  sidebarActive: 'rgba(37, 99, 235, 0.16)',
   sidebarActiveText: '#60a5fa',
-  sidebarText: '#e2e8f0',
+  sidebarText: '#f8fafc',
   sidebarTextMuted: '#94a3b8',
   sidebarBorder: 'rgba(255, 255, 255, 0.08)',
   border: '#e2e8f0',
   borderLight: '#f1f5f9',
   borderHover: '#cbd5e1',
   
-  textPrimary: '#0f172a',
+  textPrimary: '#0f172a', // 30% — #0F172A Deep Navy
   textSecondary: '#475569',
   textMuted: '#94a3b8',
   textWhite: '#ffffff',
   
-  primary: '#2563eb',
+  primary: '#2563eb', // 10% — #2563EB Trust Blue
   primaryHover: '#1d4ed8',
   primaryLight: '#eff6ff',
   primaryBorder: '#bfdbfe',
@@ -95,29 +95,29 @@ export const lightColors: ThemeColors = {
 };
 
 export const darkColors: ThemeColors = {
-  bg: '#0b0f19',
-  canvasBg: '#0b0f19',
-  card: '#111827',
-  cardHover: '#1f2937',
-  sidebar: '#080d1a',
-  sidebarActive: 'rgba(59, 130, 246, 0.18)',
+  bg: '#0f172a', // 30% — #0F172A Deep Navy
+  canvasBg: '#0f172a',
+  card: '#1e293b',
+  cardHover: '#334155',
+  sidebar: '#020617',
+  sidebarActive: 'rgba(37, 99, 235, 0.22)',
   sidebarActiveText: '#93c5fd',
-  sidebarText: '#f1f5f9',
+  sidebarText: '#f8fafc',
   sidebarTextMuted: '#64748b',
   sidebarBorder: 'rgba(255, 255, 255, 0.06)',
-  border: '#1f2937',
+  border: '#334155',
   borderLight: '#1e293b',
-  borderHover: '#374151',
+  borderHover: '#475569',
   
   textPrimary: '#f8fafc',
   textSecondary: '#cbd5e1',
-  textMuted: '#64748b',
+  textMuted: '#94a3b8',
   textWhite: '#ffffff',
   
-  primary: '#3b82f6',
-  primaryHover: '#2563eb',
-  primaryLight: 'rgba(59, 130, 246, 0.12)',
-  primaryBorder: '#1e40af',
+  primary: '#2563eb', // 10% — #2563EB Trust Blue
+  primaryHover: '#1d4ed8',
+  primaryLight: 'rgba(37, 99, 235, 0.16)',
+  primaryBorder: '#1d4ed8',
 
   success: '#10b981',
   successLight: 'rgba(16, 185, 129, 0.12)',

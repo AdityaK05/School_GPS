@@ -82,21 +82,19 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
         {/* Brand Header */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 8px 20px 8px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <div
+            <img
+              src="/logo.png"
+              alt="School-GPS Logo"
               style={{
                 width: '34px',
                 height: '34px',
                 borderRadius: radii.md,
-                backgroundColor: colors.primary,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: '#ffffff',
+                objectFit: 'contain',
+                backgroundColor: '#ffffff',
+                padding: '2px',
                 boxShadow: '0 2px 8px rgba(37, 99, 235, 0.3)',
               }}
-            >
-              <Shield size={18} strokeWidth={2.2} />
-            </div>
+            />
             <div>
               <div style={{ fontSize: '15px', fontWeight: 800, letterSpacing: '-0.02em', color: '#ffffff' }}>
                 School-GPS
@@ -296,20 +294,18 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <div
+          <img
+            src="/logo.png"
+            alt="School-GPS Logo"
             style={{
               width: '28px',
               height: '28px',
               borderRadius: radii.sm,
-              backgroundColor: colors.primary,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: '#ffffff',
+              objectFit: 'contain',
+              backgroundColor: '#ffffff',
+              padding: '2px',
             }}
-          >
-            <Shield size={16} strokeWidth={2.2} />
-          </div>
+          />
           <span style={{ fontSize: '15px', fontWeight: 800, color: '#ffffff' }}>School-GPS</span>
         </div>
 
