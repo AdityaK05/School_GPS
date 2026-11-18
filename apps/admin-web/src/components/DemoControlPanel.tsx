@@ -174,15 +174,15 @@ export const DemoControlPanel: React.FC<DemoControlPanelProps> = ({
     <div
       style={{
         position: 'fixed',
-        bottom: '24px',
-        right: '24px',
-        width: '380px',
-        backgroundColor: '#121217',
-        border: '1px solid rgba(56, 189, 248, 0.4)',
+        bottom: '20px',
+        right: '20px',
+        width: 'min(92vw, 380px)',
+        backgroundColor: '#ffffff',
+        border: '1px solid #e2e8f0',
         borderRadius: '16px',
-        boxShadow: '0 20px 50px rgba(0, 0, 0, 0.75), 0 0 20px rgba(56, 189, 248, 0.15)',
+        boxShadow: '0 20px 45px rgba(15, 23, 42, 0.16), 0 4px 12px rgba(15, 23, 42, 0.06)',
         zIndex: 9999,
-        color: '#ffffff',
+        color: '#0f172a',
         fontFamily: "'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif",
         overflow: 'hidden',
         animation: 'slide-up 0.25s ease-out',
@@ -199,7 +199,7 @@ export const DemoControlPanel: React.FC<DemoControlPanelProps> = ({
       <div
         style={{
           padding: '14px 18px',
-          backgroundColor: '#18181b',
+          backgroundColor: '#0d1938',
           borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
           display: 'flex',
           justifyContent: 'space-between',
@@ -209,8 +209,8 @@ export const DemoControlPanel: React.FC<DemoControlPanelProps> = ({
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           <span style={{ fontSize: '16px' }}>🎛️</span>
           <div>
-            <div style={{ fontSize: '13px', fontWeight: 700, color: '#38bdf8' }}>Demo Operator Control Panel</div>
-            <div style={{ fontSize: '10px', color: '#71717a' }}>Real Event Pipeline &amp; Deterministic Engine</div>
+            <div style={{ fontSize: '13px', fontWeight: 700, color: '#ffffff' }}>Demo Operator Control Panel</div>
+            <div style={{ fontSize: '10px', color: '#94a3b8' }}>Real Event Pipeline &amp; Deterministic Engine</div>
           </div>
         </div>
 
@@ -219,23 +219,25 @@ export const DemoControlPanel: React.FC<DemoControlPanelProps> = ({
           style={{
             background: 'none',
             border: 'none',
-            color: '#a1a1aa',
+            color: '#cbd5e1',
             fontSize: '18px',
             cursor: 'pointer',
             padding: '2px 6px',
+            borderRadius: '6px',
           }}
+          aria-label="Close demo panel"
         >
           &times;
         </button>
       </div>
 
       {/* Scenario Indicator */}
-      <div style={{ padding: '10px 18px', backgroundColor: 'rgba(56, 189, 248, 0.05)', borderBottom: '1px solid rgba(255, 255, 255, 0.05)', fontSize: '11px', color: '#94a3b8' }}>
-        Scenario: <strong style={{ color: '#ffffff' }}>Bus 12 (North Corridor Express)</strong> &bull; Student: <strong style={{ color: '#38bdf8' }}>Aarav Sharma</strong>
+      <div style={{ padding: '10px 18px', backgroundColor: '#eff6ff', borderBottom: '1px solid #dbeafe', fontSize: '11px', color: '#1e40af' }}>
+        Scenario: <strong style={{ color: '#0f172a' }}>Bus 12 (North Corridor Express)</strong> &bull; Student: <strong style={{ color: '#2563eb' }}>Aarav Sharma</strong>
       </div>
 
       {/* Action Buttons Grid */}
-      <div style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: '10px', maxHeight: '420px', overflowY: 'auto' }}>
+      <div style={{ padding: '14px', display: 'flex', flexDirection: 'column', gap: '10px', maxHeight: '420px', overflowY: 'auto' }}>
         {/* Step 1: Trip Controls */}
         <div style={{ fontSize: '10px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
           1. Trip Lifecycle
@@ -247,11 +249,11 @@ export const DemoControlPanel: React.FC<DemoControlPanelProps> = ({
             style={{
               padding: '8px 10px',
               borderRadius: '8px',
-              backgroundColor: '#18181b',
-              border: '1px solid rgba(16, 185, 129, 0.4)',
-              color: '#34d399',
+              backgroundColor: '#ecfdf5',
+              border: '1px solid #059669',
+              color: '#059669',
               fontSize: '11px',
-              fontWeight: 600,
+              fontWeight: 700,
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
@@ -268,9 +270,9 @@ export const DemoControlPanel: React.FC<DemoControlPanelProps> = ({
             style={{
               padding: '8px 10px',
               borderRadius: '8px',
-              backgroundColor: '#18181b',
-              border: '1px solid rgba(255, 255, 255, 0.12)',
-              color: '#e4e4e7',
+              backgroundColor: '#f8fafc',
+              border: '1px solid #cbd5e1',
+              color: '#334155',
               fontSize: '11px',
               fontWeight: 600,
               cursor: 'pointer',
@@ -295,9 +297,9 @@ export const DemoControlPanel: React.FC<DemoControlPanelProps> = ({
             style={{
               padding: '8px 10px',
               borderRadius: '8px',
-              backgroundColor: '#18181b',
-              border: '1px solid rgba(56, 189, 248, 0.3)',
-              color: '#38bdf8',
+              backgroundColor: '#f8fafc',
+              border: '1px solid #cbd5e1',
+              color: '#0284c7',
               fontSize: '11px',
               fontWeight: 600,
               cursor: 'pointer',
@@ -316,9 +318,9 @@ export const DemoControlPanel: React.FC<DemoControlPanelProps> = ({
             style={{
               padding: '8px 10px',
               borderRadius: '8px',
-              backgroundColor: '#18181b',
-              border: '1px solid rgba(56, 189, 248, 0.3)',
-              color: '#38bdf8',
+              backgroundColor: '#f8fafc',
+              border: '1px solid #cbd5e1',
+              color: '#0284c7',
               fontSize: '11px',
               fontWeight: 600,
               cursor: 'pointer',
@@ -343,9 +345,9 @@ export const DemoControlPanel: React.FC<DemoControlPanelProps> = ({
             style={{
               padding: '8px 10px',
               borderRadius: '8px',
-              backgroundColor: 'rgba(16, 185, 129, 0.15)',
-              border: '1px solid #10b981',
-              color: '#34d399',
+              backgroundColor: '#ecfdf5',
+              border: '1px solid #059669',
+              color: '#059669',
               fontSize: '11px',
               fontWeight: 700,
               cursor: 'pointer',
@@ -364,9 +366,9 @@ export const DemoControlPanel: React.FC<DemoControlPanelProps> = ({
             style={{
               padding: '8px 10px',
               borderRadius: '8px',
-              backgroundColor: 'rgba(16, 185, 129, 0.15)',
-              border: '1px solid #10b981',
-              color: '#34d399',
+              backgroundColor: '#ecfdf5',
+              border: '1px solid #059669',
+              color: '#059669',
               fontSize: '11px',
               fontWeight: 700,
               cursor: 'pointer',
@@ -381,7 +383,7 @@ export const DemoControlPanel: React.FC<DemoControlPanelProps> = ({
         </div>
 
         {/* Step 4: Safety Exceptions Showcase */}
-        <div style={{ fontSize: '10px', fontWeight: 700, color: '#ef4444', textTransform: 'uppercase', letterSpacing: '0.05em', marginTop: '4px' }}>
+        <div style={{ fontSize: '10px', fontWeight: 700, color: '#dc2626', textTransform: 'uppercase', letterSpacing: '0.05em', marginTop: '4px' }}>
           4. Safety Exceptions (Key Pitch Value)
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
@@ -392,9 +394,9 @@ export const DemoControlPanel: React.FC<DemoControlPanelProps> = ({
             style={{
               padding: '8px 10px',
               borderRadius: '8px',
-              backgroundColor: 'rgba(239, 68, 68, 0.15)',
-              border: '1px solid #ef4444',
-              color: '#f87171',
+              backgroundColor: '#fef2f2',
+              border: '1px solid #dc2626',
+              color: '#dc2626',
               fontSize: '11px',
               fontWeight: 700,
               cursor: 'pointer',
@@ -414,9 +416,9 @@ export const DemoControlPanel: React.FC<DemoControlPanelProps> = ({
             style={{
               padding: '8px 10px',
               borderRadius: '8px',
-              backgroundColor: 'rgba(245, 158, 11, 0.15)',
-              border: '1px solid #f59e0b',
-              color: '#fbbf24',
+              backgroundColor: '#fffbeb',
+              border: '1px solid #d97706',
+              color: '#d97706',
               fontSize: '11px',
               fontWeight: 700,
               cursor: 'pointer',
@@ -441,9 +443,9 @@ export const DemoControlPanel: React.FC<DemoControlPanelProps> = ({
             style={{
               padding: '8px 10px',
               borderRadius: '8px',
-              backgroundColor: '#18181b',
-              border: '1px solid rgba(245, 158, 11, 0.3)',
-              color: '#fbbf24',
+              backgroundColor: '#fffbeb',
+              border: '1px solid #fcd34d',
+              color: '#b45309',
               fontSize: '11px',
               fontWeight: 600,
               cursor: 'pointer',
@@ -458,9 +460,9 @@ export const DemoControlPanel: React.FC<DemoControlPanelProps> = ({
             style={{
               padding: '8px 10px',
               borderRadius: '8px',
-              backgroundColor: '#18181b',
-              border: '1px solid rgba(16, 185, 129, 0.3)',
-              color: '#34d399',
+              backgroundColor: '#ecfdf5',
+              border: '1px solid #6ee7b7',
+              color: '#059669',
               fontSize: '11px',
               fontWeight: 600,
               cursor: 'pointer',
@@ -478,9 +480,9 @@ export const DemoControlPanel: React.FC<DemoControlPanelProps> = ({
             marginTop: '6px',
             padding: '10px',
             borderRadius: '8px',
-            backgroundColor: 'rgba(255, 255, 255, 0.05)',
-            border: '1px solid rgba(255, 255, 255, 0.15)',
-            color: '#a1a1aa',
+            backgroundColor: '#f1f5f9',
+            border: '1px solid #cbd5e1',
+            color: '#475569',
             fontSize: '11px',
             fontWeight: 700,
             cursor: 'pointer',
@@ -499,10 +501,10 @@ export const DemoControlPanel: React.FC<DemoControlPanelProps> = ({
         <div
           style={{
             padding: '10px 14px',
-            backgroundColor: lastLog.type === 'error' ? 'rgba(239, 68, 68, 0.15)' : 'rgba(16, 185, 129, 0.12)',
-            borderTop: `1px solid ${lastLog.type === 'error' ? '#ef4444' : '#10b981'}`,
+            backgroundColor: lastLog.type === 'error' ? '#fef2f2' : '#ecfdf5',
+            borderTop: `1px solid ${lastLog.type === 'error' ? '#fca5a5' : '#a7f3d0'}`,
             fontSize: '11px',
-            color: lastLog.type === 'error' ? '#f87171' : '#34d399',
+            color: lastLog.type === 'error' ? '#dc2626' : '#059669',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',

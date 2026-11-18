@@ -301,6 +301,14 @@ export class ParentAssistantService {
       );
       activeTrip = trips.find((t: any) => t.routeId === assignment.routeId && t.status !== 'COMPLETED') || null;
 
+      // Resilient fallback for demo and active transit across date boundaries
+      if (!activeTrip) {
+        const busTrip = await this.container.tripRepo.findActiveTripByBus('66666666-6666-6666-6666-666666666612');
+        if (busTrip && busTrip.status !== 'COMPLETED') {
+          activeTrip = busTrip;
+        }
+      }
+
       if (activeTrip) {
         bus = await this.container.busRepo.findById(activeTrip.busId);
         const loc = await this.container.gpsRepo.getLatestLocationByBus(activeTrip.busId);

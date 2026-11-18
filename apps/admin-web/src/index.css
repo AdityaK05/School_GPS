@@ -1,0 +1,88 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: dark;
+}
+
+html,
+body {
+  background: #09090b;
+  color: #f4f4f5;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #27272a; border-radius: 9999px; }
+::-webkit-scrollbar-thumb:hover { background: #3f3f46; }
+
+/* Thin horizontal rule */
+.hr-divider {
+  height: 1px;
+  background: rgba(255, 255, 255, 0.06);
+  width: 100%;
+}
+
+/* Reusable component classes */
+@layer components {
+  .text-gradient-brand {
+    @apply bg-clip-text text-transparent bg-gradient-to-br from-brand-300 to-brand-500;
+  }
+
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white shadow-glow transition-all hover:bg-brand-500 hover:scale-[1.01] active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:scale-100;
+  }
+
+  .btn-secondary {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl border border-white/10 bg-surface-2 px-4 py-2.5 text-sm font-semibold text-slate-200 transition-all hover:bg-surface-3 hover:border-white/20 active:scale-[0.99];
+  }
+
+  .btn-ghost {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl px-3 py-2 text-sm font-medium text-slate-300 transition-colors hover:bg-white/5 hover:text-white;
+  }
+
+  .card {
+    @apply rounded-2xl border border-white/5 bg-surface-1 p-5 shadow-card;
+  }
+
+  .card-soft {
+    @apply rounded-2xl border border-white/5 bg-surface-1/60 p-5;
+  }
+
+  .section-title {
+    @apply text-xs font-semibold uppercase tracking-wider text-slate-500;
+  }
+
+  .page-title {
+    @apply text-2xl font-bold tracking-tight text-white;
+  }
+
+  .page-subtitle {
+    @apply mt-1 text-sm text-slate-400;
+  }
+
+  .status-pill {
+    @apply inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold;
+  }
+
+  .metric-value {
+    @apply text-3xl font-bold tracking-tight tabular-nums;
+  }
+
+  .metric-label {
+    @apply mt-1 text-xs font-medium text-slate-400;
+  }
+
+  .timeline-dot {
+    @apply relative flex h-6 w-6 items-center justify-center rounded-full;
+  }
+
+  .timeline-line {
+    @apply absolute left-1/2 top-6 h-6 w-0.5 -translate-x-1/2;
+  }
+}
