@@ -26,7 +26,8 @@ import { ParentAppView } from './pages/ParentAppView';
 import { AttendantAppView } from './pages/AttendantAppView';
 import { MobileAdminView } from './pages/MobileAdminView';
 import { DemoEnvironmentNotice } from './components/DemoEnvironmentNotice';
-import { isLocalDemoMode } from './demo-mode';
+import { PreviewDemoApiClient } from './demo-api-client';
+import { isLocalDemoMode, isVercelPreviewDemoMode } from './demo-mode';
 
 const apiBaseUrl =
   (import.meta.env?.VITE_API_BASE_URL as string) ||
@@ -34,14 +35,16 @@ const apiBaseUrl =
 
 const authToken =
   sessionStorage.getItem('aegis_access_token') ||
-  (isLocalDemoMode
+  (import.meta.env.DEV && !isVercelPreviewDemoMode
     ? 'test-token:22222222-2222-2222-2222-222222222222:SCHOOL_ADMIN:11111111-1111-1111-1111-111111111111'
     : '');
 
-const apiClient = new ApiClient({
-  baseUrl: apiBaseUrl,
-  getToken: () => authToken,
-});
+const apiClient = isVercelPreviewDemoMode
+  ? new PreviewDemoApiClient({ baseUrl: '' })
+  : new ApiClient({
+      baseUrl: apiBaseUrl,
+      getToken: () => authToken,
+    });
 
 const AdminSignIn: React.FC = () => {
   const [email, setEmail] = React.useState('');

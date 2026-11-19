@@ -109,6 +109,8 @@ docker run -d \
 4. Output Directory: `dist`
 5. Rewrite configuration in `apps/admin-web/vercel.json` proxies `/api/*` to the production backend.
 
+Pull-request deployments use the Vercel `preview` environment to enable a read-only demo UI backed by synthetic browser fixtures. The UI does not send admin, parent-chat, or scenario-control requests to the API; production builds explicitly disable the preview flag and retain sign-in. Never add service-role credentials or production secrets to client-exposed `VITE_*` variables.
+
 ---
 
 ## 5. Mobile Apps Build (Expo / EAS)

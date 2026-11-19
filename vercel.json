@@ -1,5 +1,5 @@
 {
-  "buildCommand": "VITE_PREVIEW_DEMO_MODE=true npm run build",
+  "buildCommand": "if [ \"$VERCEL_ENV\" = \"preview\" ]; then VITE_PREVIEW_DEMO_MODE=true npm run build; else VITE_PREVIEW_DEMO_MODE=false npm run build; fi",
   "outputDirectory": "apps/admin-web/dist",
   "framework": "vite",
   "rewrites": [

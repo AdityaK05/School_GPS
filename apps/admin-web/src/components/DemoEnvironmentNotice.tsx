@@ -18,7 +18,7 @@ export const DemoEnvironmentNotice: React.FC = () => {
         lineHeight: 1.45,
       }}
     >
-      DEMO MODE — Sample records and simulated events are for preview only. No live GPS/RFID is connected; do not use this view for safety decisions.
+      DEMO MODE — Synthetic sample records only. No live school data, GPS, or RFID is connected; operational actions are disabled.
     </div>
   );
 };

@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useTheme } from '../theme/ThemeContext';
 import { radii, shadows } from '../theme/design-system';
 import { RfidIcon } from './ui/RfidIcon';
-import { isLocalDemoMode } from '../demo-mode';
+import { isVercelPreviewDemoMode } from '../demo-mode';
 import {
   Sliders,
   Play,
@@ -20,7 +20,7 @@ import {
 const API_BASE = import.meta.env.VITE_API_BASE_URL || '';
 const DEMO_TOKEN =
   sessionStorage.getItem('aegis_access_token') ||
-  (isLocalDemoMode
+  (import.meta.env.DEV && !isVercelPreviewDemoMode
     ? 'test-token:22222222-2222-2222-2222-222222222222:SCHOOL_ADMIN:11111111-1111-1111-1111-111111111111'
     : '');
 
@@ -42,6 +42,14 @@ export const DemoControlPanel: React.FC<DemoControlPanelProps> = ({
   if (!isOpen) return null;
 
   const executeApi = async (actionName: string, endpoint: string, method: string, payload?: any) => {
+    if (isVercelPreviewDemoMode) {
+      setLastLog({
+        message: 'Actions are disabled in this isolated sample-data preview. No API request was sent.',
+        type: 'info',
+        timestamp: new Date().toLocaleTimeString(),
+      });
+      return;
+    }
     setLoadingAction(actionName);
     try {
       const res = await fetch(`${API_BASE}${endpoint}`, {
