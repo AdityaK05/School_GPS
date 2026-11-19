@@ -1,0 +1,168 @@
+version: '3.8'
+
+services:
+  # ==============================================================================
+  # 1. Primary PostgreSQL + PostGIS Spatial Database for Aegis Platform
+  # ==============================================================================
+  postgres:
+    image: postgis/postgis:15-3.3-alpine
+    container_name: aegis-postgres
+    restart: always
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-aegis_secure_password}
+      POSTGRES_DB: ${POSTGRES_DB:-aegis_db}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./supabase/migrations:/docker-entrypoint-initdb.d:ro
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-aegis_db}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - aegis-network
+
+  # ==============================================================================
+  # 2. Aegis Core Backend Telematics & Business API Service
+  # ==============================================================================
+  aegis-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: aegis-api
+    restart: always
+    environment:
+      PORT: 3000
+      NODE_ENV: production
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-aegis_secure_password}@postgres:5432/${POSTGRES_DB:-aegis_db}
+      CORS_ORIGIN: "*"
+      LOG_LEVEL: INFO
+      SUPABASE_URL: ${SUPABASE_URL:-http://postgres:5432}
+      SUPABASE_ANON_KEY: ${SUPABASE_ANON_KEY:-local_anon_token}
+      SUPABASE_SERVICE_ROLE_KEY: ${SUPABASE_SERVICE_ROLE_KEY:-local_service_key}
+      FCM_DRY_RUN: ${FCM_DRY_RUN:-true}
+      AI_ENABLED: ${AI_ENABLED:-false}
+    ports:
+      - "3000:3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/api/v1/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+    networks:
+      - aegis-network
+
+  # ==============================================================================
+  # 3. Aegis Administrative Web Portal (Nginx Reverse Proxy & SPA)
+  # ==============================================================================
+  aegis-web:
+    build:
+      context: .
+      dockerfile: apps/admin-web/Dockerfile
+    container_name: aegis-web
+    restart: always
+    ports:
+      - "${WEB_PORT:-80}:80"
+    depends_on:
+      - aegis-api
+    networks:
+      - aegis-network
+
+  # ==============================================================================
+  # 4. Traccar Dedicated Telematics Database
+  # ==============================================================================
+  traccar-db:
+    image: postgres:15-alpine
+    container_name: aegis-traccar-db
+    restart: always
+    environment:
+      POSTGRES_USER: traccar
+      POSTGRES_PASSWORD: traccar_secret_pass
+      POSTGRES_DB: traccar
+    volumes:
+      - traccardata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U traccar -d traccar"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - aegis-network
+
+  # ==============================================================================
+  # 5. Traccar Open-Source GPS Protocol Telematics Server
+  # ==============================================================================
+  traccar:
+    image: traccar/traccar:latest
+    container_name: aegis-traccar
+    restart: always
+    depends_on:
+      traccar-db:
+        condition: service_healthy
+    volumes:
+      - ./docker/traccar/traccar.xml:/opt/traccar/conf/traccar.xml:ro
+      - traccarlogs:/opt/traccar/logs
+    ports:
+      - "8082:8082"   # Traccar Web Management Interface
+      - "5055:5055"   # OsmAnd Protocol (Universal Mobile & HTTP Gateway)
+      - "5023:5023"   # GT06 / Coban 4G GPS Tracker Protocol
+      - "5027:5027"   # Teltonika Commercial Telematics Protocol
+    networks:
+      - aegis-network
+
+  # ==============================================================================
+  # 6. Automated Database Backup & Retention Service
+  # ==============================================================================
+  backup-service:
+    image: postgis/postgis:15-3.3-alpine
+    container_name: aegis-backup-service
+    restart: always
+    environment:
+      POSTGRES_HOST: postgres
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-aegis_secure_password}
+      POSTGRES_DB: ${POSTGRES_DB:-aegis_db}
+      BACKUP_RETENTION_DAYS: ${BACKUP_RETENTION_DAYS:-14}
+    volumes:
+      - backups:/backups
+      - ./docker/backup/backup.sh:/usr/local/bin/backup.sh:ro
+      - ./docker/backup/restore.sh:/usr/local/bin/restore.sh:ro
+    entrypoint: |
+      sh -c '
+        echo "Aegis Backup Scheduler started. Running initial backup in 15 seconds...";
+        sleep 15;
+        /usr/local/bin/backup.sh;
+        while true; do
+          sleep 86400;
+          /usr/local/bin/backup.sh;
+        done
+      '
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - aegis-network
+
+# ==============================================================================
+# Persistent Volumes & Private Network Configuration
+# ==============================================================================
+volumes:
+  pgdata:
+    name: aegis_pgdata
+  traccardata:
+    name: aegis_traccardata
+  traccarlogs:
+    name: aegis_traccarlogs
+  backups:
+    name: aegis_backups
+
+networks:
+  aegis-network:
+    name: aegis_network
+    driver: bridge

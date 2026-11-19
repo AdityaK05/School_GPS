@@ -12,7 +12,8 @@
     "@school-transport-platform/shared-types": "*",
     "@school-transport-platform/utils": "*",
     "@school-transport-platform/validation": "*",
-    "expo": "^58.0.25"
+    "expo": "^58.0.25",
+    "expo-sqlite": "~15.1.4"
   },
   "devDependencies": {
     "typescript": "^5.3.3"

@@ -4,15 +4,15 @@ export interface TripStudent {
   tripId: string;
   studentId: string;
 
-  expectedBoardingStopId: string;
-  expectedExitStopId: string;
+  expectedBoardingStopId?: string;
+  expectedExitStopId?: string;
 
-  boardingStatus:
+  boardingStatus?:
     | "PENDING"
     | "BOARDED"
     | "MISSED";
 
-  exitStatus:
+  exitStatus?:
     | "PENDING"
     | "EXITED"
     | "MISSING";
@@ -20,4 +20,8 @@ export interface TripStudent {
   actualBoardingTimestamp?: string;
   actualExitTimestamp?: string;
   stopReachedTimestamp?: string;
+  expectedStopId?: string;
+  isBoarded?: boolean;
+  isExited?: boolean;
+  boardedAt?: string;
 }

@@ -42,8 +42,9 @@ export class AuthMiddleware {
     let mockRole: UserRole | undefined;
     let mockSchoolId: string | undefined;
 
-    // 1. Synthetic test token handling (for local unit & integration test suites)
-    if (token.startsWith('test-token:')) {
+    // Synthetic tokens are restricted to local/test execution. They must never be
+    // accepted by production deployments.
+    if (token.startsWith('test-token:') && process.env.NODE_ENV !== 'production') {
       const parts = token.split(':');
       userId = parts[1] || '00000000-0000-0000-0000-000000000001';
       mockRole = (parts[2] as UserRole) || 'SCHOOL_ADMIN';

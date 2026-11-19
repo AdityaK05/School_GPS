@@ -13,6 +13,11 @@ export interface Student {
 
   status: "ACTIVE" | "INACTIVE";
 
-  createdAt: string;
-  updatedAt: string;
+  createdAt?: string;
+  updatedAt?: string;
+  emergencyContact?: string | {
+    name: string;
+    phone: string;
+    relationship: string;
+  };
 }

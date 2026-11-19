@@ -159,6 +159,11 @@ export class SupabaseBusRepository implements IBusRepository {
     return this.mapBusRow(data);
   }
 
+  async deleteBus(id: string): Promise<void> {
+    const { error } = await this.client.from('buses').delete().eq('id', id);
+    if (error) throw new Error(`Supabase error deleteBus: ${error.message}`);
+  }
+
   private mapBusRow(row: any): Bus {
     return {
       id: row.id,
@@ -295,6 +300,28 @@ export class SupabaseDeviceRepository implements IDeviceRepository {
     return this.mapRfidRow(data);
   }
 
+  async listGpsBySchool(schoolId: string): Promise<GPSDevice[]> {
+    const { data, error } = await this.client.from('gps_devices').select('*').eq('school_id', schoolId);
+    if (error) throw new Error(`Supabase error listGpsBySchool: ${error.message}`);
+    return (data || []).map((row) => this.mapGpsRow(row));
+  }
+
+  async deleteGps(id: string): Promise<void> {
+    const { error } = await this.client.from('gps_devices').delete().eq('id', id);
+    if (error) throw new Error(`Supabase error deleteGps: ${error.message}`);
+  }
+
+  async listRfidBySchool(schoolId: string): Promise<RFIDDevice[]> {
+    const { data, error } = await this.client.from('rfid_devices').select('*').eq('school_id', schoolId);
+    if (error) throw new Error(`Supabase error listRfidBySchool: ${error.message}`);
+    return (data || []).map((row) => this.mapRfidRow(row));
+  }
+
+  async deleteRfid(id: string): Promise<void> {
+    const { error } = await this.client.from('rfid_devices').delete().eq('id', id);
+    if (error) throw new Error(`Supabase error deleteRfid: ${error.message}`);
+  }
+
   private mapGpsRow(row: any): GPSDevice {
     return {
       id: row.id,
@@ -373,8 +400,11 @@ export class SupabaseRouteRepository implements IRouteRepository {
   }
 
   async createStop(stop: Stop): Promise<Stop> {
+    const route = await this.findRouteById(stop.routeId);
+    if (!route) throw new Error(`Supabase error createStop: route ${stop.routeId} not found`);
     const row = {
       id: stop.id,
+      school_id: route.schoolId,
       route_id: stop.routeId,
       name: stop.name,
       sequence: stop.sequence,
@@ -386,6 +416,51 @@ export class SupabaseRouteRepository implements IRouteRepository {
     const { data, error } = await this.client.from('stops').insert(row).select().single();
     if (error) throw new Error(`Supabase error createStop: ${error.message}`);
     return this.mapStopRow(data);
+  }
+
+  async updateStop(id: string, updates: Partial<Stop>): Promise<Stop> {
+    const payload: Record<string, unknown> = {};
+    if (updates.routeId !== undefined) payload.route_id = updates.routeId;
+    if (updates.name !== undefined) payload.name = updates.name;
+    if (updates.sequence !== undefined) payload.sequence = updates.sequence;
+    if (updates.latitude !== undefined) payload.latitude = updates.latitude;
+    if (updates.longitude !== undefined) payload.longitude = updates.longitude;
+    if (updates.geofenceRadiusMeters !== undefined) payload.geofence_radius_meters = updates.geofenceRadiusMeters;
+    if (updates.expectedArrivalTime !== undefined) payload.expected_arrival_time = updates.expectedArrivalTime;
+    const { data, error } = await this.client.from('stops').update(payload).eq('id', id).select().single();
+    if (error) throw new Error(`Supabase error updateStop: ${error.message}`);
+    return this.mapStopRow(data);
+  }
+
+  async deleteStop(id: string): Promise<void> {
+    const { error } = await this.client.from('stops').delete().eq('id', id);
+    if (error) throw new Error(`Supabase error deleteStop: ${error.message}`);
+  }
+
+  async updateRoute(id: string, updates: Partial<Route>): Promise<Route> {
+    const payload: Record<string, unknown> = {};
+    if (updates.name !== undefined) payload.name = updates.name;
+    if (updates.code !== undefined) payload.code = updates.code;
+    if (updates.direction !== undefined) payload.direction = updates.direction;
+    if (updates.status !== undefined) payload.status = updates.status;
+    const { data, error } = await this.client.from('routes').update(payload).eq('id', id).select().single();
+    if (error) throw new Error(`Supabase error updateRoute: ${error.message}`);
+    return this.mapRouteRow(data);
+  }
+
+  async deleteRoute(id: string): Promise<void> {
+    const { error } = await this.client.from('routes').delete().eq('id', id);
+    if (error) throw new Error(`Supabase error deleteRoute: ${error.message}`);
+  }
+
+  async isPointWithinStopGeofence(stopId: string, latitude: number, longitude: number): Promise<boolean> {
+    const { data, error } = await this.client.rpc('is_point_within_stop_geofence', {
+      p_stop_id: stopId,
+      p_latitude: latitude,
+      p_longitude: longitude,
+    });
+    if (error) throw new Error(`Supabase geofence query failed: ${error.message}`);
+    return data === true;
   }
 
   private mapRouteRow(row: any): Route {
@@ -572,6 +647,17 @@ export class SupabaseStudentRepository implements IStudentRepository {
     return this.mapStudentRow(data);
   }
 
+  async findByAdmissionNumber(schoolId: string, admissionNumber: string): Promise<Student | null> {
+    const { data, error } = await this.client
+      .from('students')
+      .select('*')
+      .eq('school_id', schoolId)
+      .eq('admission_number', admissionNumber)
+      .maybeSingle();
+    if (error) throw new Error(`Supabase error findByAdmissionNumber: ${error.message}`);
+    return data ? this.mapStudentRow(data) : null;
+  }
+
   async findBySchool(schoolId: string): Promise<Student[]> {
     const { data, error } = await this.client.from('students').select('*').eq('school_id', schoolId);
     if (error) throw new Error(`Supabase error findStudentsBySchool: ${error.message}`);
@@ -696,6 +782,34 @@ export class SupabaseStudentRepository implements IStudentRepository {
       .in('id', studentIds);
     if (studentErr) throw new Error(`Supabase error fetching students by guardian: ${studentErr.message}`);
     return (students || []).map(this.mapStudentRow);
+  }
+
+  async deleteStudent(id: string): Promise<void> {
+    const { error } = await this.client.from('students').delete().eq('id', id);
+    if (error) throw new Error(`Supabase error deleteStudent: ${error.message}`);
+  }
+
+  async linkGuardian(guardian: Guardian): Promise<Guardian> {
+    const { data, error } = await this.client.from('guardians').insert({
+      id: guardian.id,
+      user_id: guardian.userId,
+      student_id: guardian.studentId,
+      relationship: guardian.relationship,
+      notification_enabled: guardian.notificationEnabled,
+    }).select().single();
+    if (error) throw new Error(`Supabase error linkGuardian: ${error.message}`);
+    return {
+      id: data.id,
+      userId: data.user_id,
+      studentId: data.student_id,
+      relationship: data.relationship,
+      notificationEnabled: data.notification_enabled,
+    };
+  }
+
+  async unlinkGuardian(guardianId: string): Promise<void> {
+    const { error } = await this.client.from('guardians').delete().eq('id', guardianId);
+    if (error) throw new Error(`Supabase error unlinkGuardian: ${error.message}`);
   }
 
   private mapStudentRow(row: any): Student {
@@ -1021,6 +1135,21 @@ export class SupabaseNotificationRepository implements INotificationRepository {
     }));
   }
 
+  async findBySchool(schoolId: string): Promise<Notification[]> {
+    const { data, error } = await this.client.from('notifications').select('*').eq('school_id', schoolId);
+    if (error) throw new Error(`Supabase error findNotificationsBySchool: ${error.message}`);
+    return (data || []).map((row: any) => ({
+      id: row.id,
+      userId: row.user_id,
+      schoolId: row.school_id,
+      type: row.type,
+      title: row.title,
+      body: row.body,
+      readAt: row.read_at,
+      createdAt: row.created_at,
+    }));
+  }
+
   async update(id: string, updates: Partial<Notification>): Promise<Notification> {
     const payload: Record<string, unknown> = {};
     if (updates.readAt !== undefined) payload.read_at = updates.readAt;
@@ -1137,6 +1266,282 @@ export class SupabaseUserRepository implements IUserRepository {
       isSuperAdmin: role === 'SUPER_ADMIN',
     };
   }
+
+  async findByPhoneOrEmail(identifier: string): Promise<User | null> {
+    const { data } = await this.client
+      .from('users')
+      .select('*')
+      .or(`phone.eq.${identifier},email.eq.${identifier}`)
+      .maybeSingle();
+    if (!data) return null;
+    return {
+      id: data.id,
+      schoolId: data.school_id,
+      firstName: data.first_name,
+      lastName: data.last_name,
+      email: data.email,
+      phone: data.phone,
+      status: data.status,
+      createdAt: data.created_at,
+      updatedAt: data.updated_at,
+    };
+  }
+
+  async createUser(user: User): Promise<User> {
+    const { data, error } = await this.client
+      .from('users')
+      .insert({
+        id: user.id,
+        school_id: user.schoolId,
+        first_name: user.firstName,
+        last_name: user.lastName,
+        phone: user.phone,
+        status: user.status,
+      })
+      .select()
+      .single();
+    if (error) throw new Error(`Supabase createUser: ${error.message}`);
+    return user;
+  }
+
+  async updateUser(id: string, updates: Partial<User>): Promise<User> {
+    const { error } = await this.client.from('users').update(updates).eq('id', id);
+    if (error) throw new Error(`Supabase updateUser: ${error.message}`);
+    const u = await this.findById(id);
+    return u!;
+  }
+
+  async listUsersBySchool(schoolId: string): Promise<User[]> {
+    const { data, error } = await this.client.from('users').select('*').eq('school_id', schoolId);
+    if (error) throw new Error(`Supabase listUsersBySchool: ${error.message}`);
+    return (data || []).map((d) => ({
+      id: d.id,
+      schoolId: d.school_id,
+      firstName: d.first_name,
+      lastName: d.last_name,
+      phone: d.phone,
+      status: d.status,
+      createdAt: d.created_at,
+      updatedAt: d.updated_at,
+    }));
+  }
+}
+
+export class SupabaseSettingsRepository {
+  constructor(private client: SupabaseClient) {}
+  async getSettings(schoolId: string) {
+    const { data } = await this.client.from('platform_settings').select('*').eq('school_id', schoolId).maybeSingle();
+    if (data) {
+      return {
+        schoolId: data.school_id,
+        schoolName: data.school_name,
+        gpsFreshnessSeconds: data.gps_freshness_seconds,
+        gpsStaleSeconds: data.gps_stale_seconds,
+        geofenceRadiusMeters: data.geofence_radius_meters,
+        mapTileProvider: data.map_tile_provider,
+        fcmEnabled: data.fcm_enabled,
+        dataRetentionDays: data.data_retention_days,
+        updatedAt: data.updated_at,
+      };
+    }
+    return {
+      schoolId,
+      schoolName: 'Delhi Public International School',
+      gpsFreshnessSeconds: 60,
+      gpsStaleSeconds: 120,
+      geofenceRadiusMeters: 75,
+      mapTileProvider: 'carto-dark' as const,
+      fcmEnabled: true,
+      dataRetentionDays: 90,
+      updatedAt: new Date().toISOString(),
+    };
+  }
+  async updateSettings(schoolId: string, updates: any) {
+    const { error } = await this.client.from('platform_settings').upsert({ school_id: schoolId, ...updates, updated_at: new Date().toISOString() });
+    if (error) throw new Error(`Supabase updateSettings: ${error.message}`);
+    return this.getSettings(schoolId);
+  }
+}
+
+export class SupabaseMaintenanceRepository {
+  constructor(private client: SupabaseClient) {}
+  async findByBus(busId: string) {
+    const { data } = await this.client.from('bus_maintenance').select('*').eq('bus_id', busId);
+    return (data || []).map((m) => ({
+      id: m.id,
+      busId: m.bus_id,
+      schoolId: m.school_id,
+      serviceDate: m.service_date,
+      serviceType: m.service_type,
+      odometerReading: m.odometer_reading,
+      cost: m.cost,
+      notes: m.notes,
+      technicianName: m.technician_name,
+      createdAt: m.created_at,
+    }));
+  }
+  async findBySchool(schoolId: string) {
+    const { data } = await this.client.from('bus_maintenance').select('*').eq('school_id', schoolId);
+    return (data || []).map((m) => ({
+      id: m.id,
+      busId: m.bus_id,
+      schoolId: m.school_id,
+      serviceDate: m.service_date,
+      serviceType: m.service_type,
+      odometerReading: m.odometer_reading,
+      cost: m.cost,
+      notes: m.notes,
+      technicianName: m.technician_name,
+      createdAt: m.created_at,
+    }));
+  }
+  async create(record: any) {
+    const { error } = await this.client.from('bus_maintenance').insert({
+      id: record.id,
+      bus_id: record.busId,
+      school_id: record.schoolId,
+      service_date: record.serviceDate,
+      service_type: record.serviceType,
+      odometer_reading: record.odometerReading,
+      cost: record.cost,
+      notes: record.notes,
+      technician_name: record.technicianName,
+    });
+    if (error) throw new Error(`Supabase createMaintenance: ${error.message}`);
+    return record;
+  }
+}
+
+export class SupabaseStaffRepository {
+  constructor(private client: SupabaseClient) {}
+  async findBySchool(schoolId: string) {
+    const { data } = await this.client.from('staff_profiles').select('*').eq('school_id', schoolId);
+    return (data || []).map((s) => ({
+      id: s.id,
+      userId: s.user_id,
+      schoolId: s.school_id,
+      role: s.role,
+      name: s.name,
+      phone: s.phone,
+      email: s.email,
+      licenseNumber: s.license_number,
+      assignedBusId: s.assigned_bus_id,
+      assignedRouteId: s.assigned_route_id,
+      status: s.status,
+      createdAt: s.created_at,
+    }));
+  }
+  async findById(id: string) {
+    const { data } = await this.client.from('staff_profiles').select('*').eq('id', id).maybeSingle();
+    if (!data) return null;
+    return {
+      id: data.id,
+      userId: data.user_id,
+      schoolId: data.school_id,
+      role: data.role,
+      name: data.name,
+      phone: data.phone,
+      email: data.email,
+      licenseNumber: data.license_number,
+      assignedBusId: data.assigned_bus_id,
+      assignedRouteId: data.assigned_route_id,
+      status: data.status,
+      createdAt: data.created_at,
+    };
+  }
+  async create(staff: any) {
+    const { error } = await this.client.from('staff_profiles').insert({
+      id: staff.id,
+      user_id: staff.userId,
+      school_id: staff.schoolId,
+      role: staff.role,
+      name: staff.name,
+      phone: staff.phone,
+      email: staff.email,
+      license_number: staff.licenseNumber,
+      assigned_bus_id: staff.assignedBusId,
+      assigned_route_id: staff.assignedRouteId,
+      status: staff.status,
+    });
+    if (error) throw new Error(`Supabase createStaff: ${error.message}`);
+    return staff;
+  }
+  async update(id: string, updates: any) {
+    const { error } = await this.client.from('staff_profiles').update(updates).eq('id', id);
+    if (error) throw new Error(`Supabase updateStaff: ${error.message}`);
+    const res = await this.findById(id);
+    return res!;
+  }
+  async deleteStaff(id: string) {
+    await this.client.from('staff_profiles').update({ status: 'INACTIVE' }).eq('id', id);
+  }
+}
+
+export class SupabaseNotificationOutboxRepository {
+  constructor(private client: SupabaseClient) {}
+  async queueNotification(item: any) {
+    const { error } = await this.client.from('notification_outbox').insert({
+      id: item.id,
+      school_id: item.schoolId,
+      user_id: item.userId,
+      title: item.title,
+      body: item.body,
+      type: item.type,
+      status: item.status,
+      retry_count: item.retryCount,
+      max_retries: item.maxRetries,
+      metadata: item.metadata,
+    });
+    if (error) throw new Error(`Supabase queueNotification: ${error.message}`);
+    return item;
+  }
+  async getPending(limit: number = 50) {
+    const { data } = await this.client
+      .from('notification_outbox')
+      .select('*')
+      .in('status', ['PENDING', 'FAILED'])
+      .limit(limit);
+    return (data || []).map((n) => ({
+      id: n.id,
+      schoolId: n.school_id,
+      userId: n.user_id,
+      title: n.title,
+      body: n.body,
+      type: n.type,
+      status: n.status,
+      retryCount: n.retry_count,
+      maxRetries: n.max_retries,
+      lastAttemptAt: n.last_attempt_at,
+      error: n.error,
+      metadata: n.metadata,
+      createdAt: n.created_at,
+      sentAt: n.sent_at,
+    }));
+  }
+  async update(id: string, updates: any) {
+    const { error } = await this.client.from('notification_outbox').update(updates).eq('id', id);
+    if (error) throw new Error(`Supabase updateOutbox: ${error.message}`);
+    return updates;
+  }
+  async listBySchool(schoolId: string) {
+    const { data } = await this.client.from('notification_outbox').select('*').eq('school_id', schoolId);
+    return (data || []).map((n) => ({
+      id: n.id,
+      schoolId: n.school_id,
+      userId: n.user_id,
+      title: n.title,
+      body: n.body,
+      type: n.type,
+      status: n.status,
+      retryCount: n.retry_count,
+      maxRetries: n.max_retries,
+      lastAttemptAt: n.last_attempt_at,
+      error: n.error,
+      metadata: n.metadata,
+      createdAt: n.created_at,
+      sentAt: n.sent_at,
+    }));
+  }
 }
 
 export class SupabaseContainer implements IRepositoryContainer {
@@ -1152,6 +1557,10 @@ export class SupabaseContainer implements IRepositoryContainer {
   public notificationRepo: INotificationRepository;
   public auditRepo: IAuditRepository;
   public userRepo: IUserRepository;
+  public settingsRepo: any;
+  public maintenanceRepo: any;
+  public staffRepo: any;
+  public outboxRepo: any;
 
   constructor(client: SupabaseClient) {
     this.schoolRepo = new SupabaseSchoolRepository(client);
@@ -1166,5 +1575,9 @@ export class SupabaseContainer implements IRepositoryContainer {
     this.notificationRepo = new SupabaseNotificationRepository(client);
     this.auditRepo = new SupabaseAuditRepository(client);
     this.userRepo = new SupabaseUserRepository(client);
+    this.settingsRepo = new SupabaseSettingsRepository(client);
+    this.maintenanceRepo = new SupabaseMaintenanceRepository(client);
+    this.staffRepo = new SupabaseStaffRepository(client);
+    this.outboxRepo = new SupabaseNotificationOutboxRepository(client);
   }
 }

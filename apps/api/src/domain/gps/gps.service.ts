@@ -3,7 +3,7 @@ import {
   JourneyEvent,
 } from '@school-transport-platform/shared-types';
 import { THRESHOLDS } from '@school-transport-platform/constants';
-import { generateUuidV7, isWithinGeofence } from '@school-transport-platform/utils';
+import { generateUuidV7 } from '@school-transport-platform/utils';
 import {
   IGpsRepository,
   IDeviceRepository,
@@ -154,12 +154,10 @@ export class GPSService {
       // Evaluate stops along the route
       const stops = await this.routeRepo.findStopsByRoute(activeTrip.routeId);
       for (const stop of stops) {
-        const inside = isWithinGeofence(
+        const inside = await this.routeRepo.isPointWithinStopGeofence(
+          stop.id,
           normalized.latitude,
-          normalized.longitude,
-          stop.latitude,
-          stop.longitude,
-          stop.geofenceRadiusMeters || THRESHOLDS.DEFAULT_STOP_GEOFENCE_RADIUS_METERS
+          normalized.longitude
         );
         if (inside) {
           stopReachedId = stop.id;

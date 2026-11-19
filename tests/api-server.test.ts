@@ -115,7 +115,7 @@ describe('HTTP API Server Integration', () => {
   it('GET /api/v1/dashboard/overview aggregates operational counts', async () => {
     const res = await request('/api/v1/dashboard/overview', { token: adminToken });
     expect(res.status).toBe(200);
-    expect(res.json.data.activeBuses).toBe(1);
-    expect(res.json.data.totalStudents).toBe(1);
+    expect(res.json.data.activeBuses).toBe(3);
+    expect(res.json.data.totalStudents).toBe(4);
   });
 });

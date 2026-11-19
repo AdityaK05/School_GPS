@@ -17,7 +17,11 @@ import {
 } from 'lucide-react';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || 'https://school-gps-api.onrender.com';
-const DEMO_TOKEN = 'test-token:22222222-2222-2222-2222-222222222222:SCHOOL_ADMIN:11111111-1111-1111-1111-111111111111';
+const DEMO_TOKEN =
+  sessionStorage.getItem('aegis_access_token') ||
+  (import.meta.env.DEV
+    ? 'test-token:22222222-2222-2222-2222-222222222222:SCHOOL_ADMIN:11111111-1111-1111-1111-111111111111'
+    : '');
 
 interface DemoControlPanelProps {
   isOpen: boolean;

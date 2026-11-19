@@ -8,7 +8,7 @@ export type JourneyState =
   | "COMPLETED";
 
 export interface StudentJourneyState {
-  id: string;
+  id?: string;
 
   tripId: string;
   studentId: string;

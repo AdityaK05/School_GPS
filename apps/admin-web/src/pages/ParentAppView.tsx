@@ -26,7 +26,11 @@ import {
 } from 'lucide-react';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || 'https://school-gps-api.onrender.com';
-const PARENT_TOKEN = 'test-token:55555555-5555-5555-5555-555555555555:PARENT:11111111-1111-1111-1111-111111111111';
+const PARENT_TOKEN =
+  sessionStorage.getItem('aegis_access_token') ||
+  (import.meta.env.DEV
+    ? 'test-token:55555555-5555-5555-5555-555555555555:PARENT:11111111-1111-1111-1111-111111111111'
+    : '');
 
 export const ParentAppView: React.FC<{ apiClient: ApiClient }> = () => {
   const { pathname, navigate, setPersona } = useRouter();

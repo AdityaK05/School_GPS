@@ -8,5 +8,6 @@ export interface StudentRouteAssignment {
   effectiveFrom: string;
   effectiveUntil?: string;
 
-  status: "ACTIVE" | "INACTIVE";
+  status?: "ACTIVE" | "INACTIVE";
+  createdAt?: string;
 }

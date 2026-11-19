@@ -1,0 +1,40 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<!DOCTYPE properties SYSTEM 'http://java.sun.com/dtd/properties.dtd'>
+<properties>
+    <!-- Traccar Telematics & Device Gateway Configuration for Aegis Platform -->
+
+    <!-- Web Console Configuration -->
+    <entry key='web.port'>8082</entry>
+    <entry key='web.path'>./web</entry>
+
+    <!-- Database Configuration (PostgreSQL Dedicated Telematics Store) -->
+    <entry key='database.driver'>org.postgresql.Driver</entry>
+    <entry key='database.url'>jdbc:postgresql://traccar-db:5432/traccar</entry>
+    <entry key='database.user'>traccar</entry>
+    <entry key='database.password'>traccar_secret_pass</entry>
+
+    <!-- Location Ingestion & Device Protocols -->
+    <!-- OsmAnd (Port 5055) - Standard for mobile & IoT gateways -->
+    <entry key='osmand.port'>5055</entry>
+    <!-- GT06 / Coban / Concox (Port 5023) - Common commercial 4G bus trackers -->
+    <entry key='gt06.port'>5023</entry>
+    <!-- Teltonika (Port 5027) - Heavy commercial vehicle telematics -->
+    <entry key='teltonika.port'>5027</entry>
+    <!-- H02 (Port 5013) -->
+    <entry key='h02.port'>5013</entry>
+
+    <!-- Real-time Telematics Forwarding to Aegis API Ingestion Service -->
+    <!-- Method A: Direct Position Forwarding (Query Parameters) -->
+    <entry key='forward.enable'>true</entry>
+    <entry key='forward.url'>http://aegis-api:3000/api/v1/gps/forward?id={uniqueId}&amp;lat={latitude}&amp;lon={longitude}&amp;speed={speed}&amp;bearing={course}&amp;altitude={altitude}&amp;timestamp={fixTime}&amp;valid={valid}</entry>
+
+    <!-- Method B: Webhook Event & Position Forwarding (JSON Payload) -->
+    <entry key='event.forward.enable'>true</entry>
+    <entry key='event.forward.url'>http://aegis-api:3000/api/v1/gps/traccar</entry>
+    <entry key='event.forward.headers'>Content-Type: application/json</entry>
+
+    <!-- Geocoder & Over-the-air Settings -->
+    <entry key='geocoder.enable'>false</entry>
+    <entry key='processing.computedAttributes.deviceAttributes'>true</entry>
+    <entry key='status.timeout'>120</entry>
+</properties>

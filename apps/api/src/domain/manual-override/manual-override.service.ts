@@ -118,7 +118,7 @@ export class ManualAttendanceOverrideService {
       params.actorUserId,
       'MANUAL_ATTENDANCE_OVERRIDE',
       'student_journey_states',
-      updatedSnapshot.id,
+      updatedSnapshot.id || updatedSnapshot.studentId,
       { previousState },
       { newState, overrideEventId: overrideEvent.id },
       params.reason

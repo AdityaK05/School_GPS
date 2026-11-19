@@ -5,5 +5,8 @@ export interface Guardian {
 
   relationship: "FATHER" | "MOTHER" | "GUARDIAN";
 
-  notificationEnabled: boolean;
+  notificationEnabled?: boolean;
+  isEmergencyContact?: boolean;
+  canPickup?: boolean;
+  createdAt?: string;
 }

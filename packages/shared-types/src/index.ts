@@ -16,3 +16,4 @@ export * from './types/notification';
 export * from './types/audit-log';
 export * from './types/rfid-device';
 export * from './types/gps-location';
+export * from './types/platform-models';

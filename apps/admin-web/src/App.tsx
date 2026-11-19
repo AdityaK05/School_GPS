@@ -31,7 +31,10 @@ const apiBaseUrl =
   'https://school-gps-api.onrender.com';
 
 const authToken =
-  'test-token:22222222-2222-2222-2222-222222222222:SCHOOL_ADMIN:11111111-1111-1111-1111-111111111111';
+  sessionStorage.getItem('aegis_access_token') ||
+  (import.meta.env.DEV
+    ? 'test-token:22222222-2222-2222-2222-222222222222:SCHOOL_ADMIN:11111111-1111-1111-1111-111111111111'
+    : '');
 
 const apiClient = new ApiClient({
   baseUrl: apiBaseUrl,

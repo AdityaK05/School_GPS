@@ -15,4 +15,5 @@ export interface AuditLog {
   reason?: string;
 
   createdAt: string;
+  timestamp?: string;
 }

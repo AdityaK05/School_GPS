@@ -134,6 +134,12 @@ export class OfflineSyncEngine {
     private deviceId: string
   ) {}
 
+  public getRetryDelayMs(retryCount: number): number {
+    const baseDelayMs = 1000;
+    const maxDelayMs = 60_000;
+    return Math.min(maxDelayMs, baseDelayMs * 2 ** Math.max(0, retryCount));
+  }
+
   /**
    * Enqueues an offline event locally with UUID v7 idempotency key.
    */

@@ -2,8 +2,8 @@ export interface Bus {
   id: string;
   schoolId: string;
 
-  registrationNumber: string;
-  fleetNumber: string;
+  registrationNumber?: string;
+  fleetNumber?: string;
 
   capacity: number;
 
@@ -15,6 +15,7 @@ export interface Bus {
   activeGpsDeviceId?: string;
   activeRfidDeviceId?: string;
 
-  createdAt: string;
-  updatedAt: string;
+  createdAt?: string;
+  updatedAt?: string;
+  busNumber?: string;
 }

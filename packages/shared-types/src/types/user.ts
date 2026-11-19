@@ -9,7 +9,7 @@ export type UserRole =
 export interface User {
   id: string;
   schoolId?: string;
-  email: string;
+  email?: string;
   firstName: string;
   lastName: string;
   phone?: string;
@@ -30,6 +30,6 @@ export interface AuthContext {
   userId: string;
   schoolId?: string;
   role: UserRole;
-  email: string;
+  email?: string;
   isSuperAdmin: boolean;
 }

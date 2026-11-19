@@ -101,7 +101,7 @@ describe('Groq AI Parent Transport Assistant — Safety & Isolation Tests', () =
       busId: busIdA,
       date: new Date().toISOString().split('T')[0],
       tripType: 'PICKUP',
-      status: 'IN_TRANSIT',
+      status: 'IN_PROGRESS',
       startedAt: new Date().toISOString(),
     });
 

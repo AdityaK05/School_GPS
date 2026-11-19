@@ -55,7 +55,11 @@ export class AttendantService {
   /**
    * Processes an RFID scan inside a moving school bus with immediate UI feedback.
    */
-  public async handleScan(cardId: string, tripId: string): Promise<ScanFeedback> {
+  public async handleScan(
+    cardId: string,
+    tripId: string,
+    offlineEventType: 'STUDENT_BOARDING' | 'STUDENT_EXIT' = 'STUDENT_BOARDING'
+  ): Promise<ScanFeedback> {
     const timestamp = new Date().toISOString();
     const idempotencyKey = generateUuidV7();
 
@@ -114,7 +118,7 @@ export class AttendantService {
       // 2. Offline fallback: buffer event locally in SQLite/SyncEngine
       await this.syncEngine.enqueue({
         idempotencyKey,
-        eventType: 'STUDENT_BOARDING',
+        eventType: offlineEventType,
         tripId,
         eventTimestamp: timestamp,
         source: 'RFID',
