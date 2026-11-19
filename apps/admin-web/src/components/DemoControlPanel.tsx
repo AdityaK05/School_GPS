@@ -236,8 +236,12 @@ export const DemoControlPanel: React.FC<DemoControlPanelProps> = ({
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           <Sliders size={16} strokeWidth={2.2} color="#ffffff" />
           <div>
-            <div style={{ fontSize: '13px', fontWeight: 700, color: '#ffffff' }}>Demo Operator Console</div>
-            <div style={{ fontSize: '10px', color: '#94a3b8' }}>Real Event Pipeline &amp; Safety Engine</div>
+            <div style={{ fontSize: '13px', fontWeight: 700, color: '#ffffff' }}>
+              {isVercelPreviewDemoMode ? 'Preview Demo Controls' : 'Demo Operator Console'}
+            </div>
+            <div style={{ fontSize: '10px', color: '#94a3b8' }}>
+              {isVercelPreviewDemoMode ? 'Sample-only preview · actions disabled' : 'Real Event Pipeline &amp; Safety Engine'}
+            </div>
           </div>
         </div>
 
@@ -269,7 +273,11 @@ export const DemoControlPanel: React.FC<DemoControlPanelProps> = ({
           color: colors.primary,
         }}
       >
-        Scenario: <strong style={{ color: colors.textPrimary }}>Bus 12 (North Corridor)</strong> &bull; Student: <strong style={{ color: colors.primary }}>Aarav Sharma</strong>
+        Scenario: <strong style={{ color: colors.textPrimary }}>
+          {isVercelPreviewDemoMode ? 'Demo Bus 12 (North Corridor)' : 'Bus 12 (North Corridor)'}
+        </strong> &bull; Student: <strong style={{ color: colors.primary }}>
+          {isVercelPreviewDemoMode ? 'Demo Student' : 'Aarav Sharma'}
+        </strong>
       </div>
 
       {/* Action Buttons Grid */}
