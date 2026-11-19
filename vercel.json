@@ -1,5 +1,5 @@
 {
-  "buildCommand": "npm run build",
+  "buildCommand": "VITE_PREVIEW_DEMO_MODE=true npm run build",
   "outputDirectory": "apps/admin-web/dist",
   "framework": "vite",
   "rewrites": [
