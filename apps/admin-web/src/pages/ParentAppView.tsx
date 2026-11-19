@@ -7,6 +7,7 @@ import { StatusBadge } from '../components/ui/SharedComponents';
 import { InteractiveMap, MapMarker } from '../components/InteractiveMap';
 import { JourneyLine } from '../components/ui/JourneyLine';
 import { ApiClient } from '@school-transport-platform/client-sdk';
+import { isVercelPreviewDemoMode } from '../demo-mode';
 import {
   House,
   Route,
@@ -25,8 +26,12 @@ import {
   Clock3,
 } from 'lucide-react';
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL || 'https://school-gps-api.onrender.com';
-const PARENT_TOKEN = 'test-token:55555555-5555-5555-5555-555555555555:PARENT:11111111-1111-1111-1111-111111111111';
+const API_BASE = import.meta.env.VITE_API_BASE_URL || '';
+const PARENT_TOKEN =
+  sessionStorage.getItem('aegis_access_token') ||
+  (import.meta.env.DEV && !isVercelPreviewDemoMode
+    ? 'test-token:55555555-5555-5555-5555-555555555555:PARENT:11111111-1111-1111-1111-111111111111'
+    : '');
 
 export const ParentAppView: React.FC<{ apiClient: ApiClient }> = () => {
   const { pathname, navigate, setPersona } = useRouter();
@@ -71,6 +76,18 @@ export const ParentAppView: React.FC<{ apiClient: ApiClient }> = () => {
     setIsAiLoading(true);
 
     try {
+      if (isVercelPreviewDemoMode) {
+        setChatMessages((prev) => [
+          ...prev,
+          {
+            sender: 'assistant',
+            text: 'This is a demo preview using sample information only. No live student or transport data is connected.',
+            time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          },
+        ]);
+        return;
+      }
+
       const res = await fetch(`${API_BASE}/api/v1/parent/ai/chat`, {
         method: 'POST',
         headers: {

@@ -1,0 +1,102 @@
+services:
+  aegis-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: aegis-api
+    restart: always
+    environment:
+      PORT: 3000
+      NODE_ENV: production
+      CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost,http://127.0.0.1}
+      LOG_LEVEL: INFO
+      SUPABASE_URL: ${SUPABASE_URL:?Set SUPABASE_URL to the local Supabase API URL}
+      SUPABASE_SERVICE_ROLE_KEY: ${SUPABASE_SERVICE_ROLE_KEY:?Set the local Supabase service-role key}
+      GPS_INGEST_TOKEN: ${GPS_INGEST_TOKEN:?Set a long random GPS_INGEST_TOKEN}
+      FCM_DRY_RUN: ${FCM_DRY_RUN:-true}
+      AI_ENABLED: ${AI_ENABLED:-false}
+    expose:
+      - "3000"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      traccar-db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/api/v1/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+    networks:
+      - aegis-network
+
+  aegis-web:
+    build:
+      context: .
+      dockerfile: apps/admin-web/Dockerfile
+      args:
+        VITE_SUPABASE_URL: ${VITE_SUPABASE_URL:-http://localhost:54321}
+        VITE_SUPABASE_ANON_KEY: ${VITE_SUPABASE_ANON_KEY:?Set the local Supabase publishable/anon key}
+    container_name: aegis-web
+    restart: always
+    ports:
+      - "127.0.0.1:${WEB_PORT:-8080}:80"
+    depends_on:
+      - aegis-api
+    networks:
+      - aegis-network
+
+  traccar-db:
+    image: postgres:15-alpine
+    container_name: aegis-traccar-db
+    restart: always
+    environment:
+      POSTGRES_USER: traccar
+      POSTGRES_PASSWORD: ${TRACCAR_DB_PASSWORD:?Set a strong TRACCAR_DB_PASSWORD}
+      POSTGRES_DB: traccar
+    volumes:
+      - traccardata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U traccar -d traccar"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - aegis-network
+
+  traccar:
+    image: traccar/traccar:6
+    container_name: aegis-traccar
+    restart: always
+    depends_on:
+      traccar-db:
+        condition: service_healthy
+    environment:
+      CONFIG_USE_ENVIRONMENT_VARIABLES: "true"
+      DATABASE_DRIVER: org.postgresql.Driver
+      DATABASE_URL: jdbc:postgresql://traccar-db:5432/traccar
+      DATABASE_USER: traccar
+      DATABASE_PASSWORD: ${TRACCAR_DB_PASSWORD:?Set a strong TRACCAR_DB_PASSWORD}
+      EVENT_FORWARD_ENABLE: "true"
+      EVENT_FORWARD_URL: http://aegis-api:3000/api/v1/gps/traccar
+      EVENT_FORWARD_HEADERS: "Content-Type: application/json\nX-GPS-Ingest-Token: ${GPS_INGEST_TOKEN:?Set a long random GPS_INGEST_TOKEN}"
+    volumes:
+      - traccarlogs:/opt/traccar/logs
+    ports:
+      - "127.0.0.1:8082:8082"
+      - "5055:5055"   # OsmAnd Protocol (Universal Mobile & HTTP Gateway)
+      - "5023:5023"   # GT06 / Coban 4G GPS Tracker Protocol
+      - "5027:5027"   # Teltonika Commercial Telematics Protocol
+    networks:
+      - aegis-network
+
+volumes:
+  traccardata:
+    name: aegis_traccardata
+  traccarlogs:
+    name: aegis_traccarlogs
+
+networks:
+  aegis-network:
+    name: aegis_network
+    driver: bridge

@@ -13,7 +13,18 @@ import {
 } from './components/parent/ParentScreens';
 import { ScanFeedback } from './services/attendant.service';
 
+declare const __DEV__: boolean;
+
 export const App: React.FC = () => {
+  if (!__DEV__) {
+    return (
+      <main style={{ maxWidth: 480, margin: '12vh auto', padding: 28, fontFamily: 'sans-serif' }}>
+        <h1>Mobile operations are not enabled</h1>
+        <p>Authenticated parent and attendant workflows are not connected in this build. No sample student or location data is shown.</p>
+      </main>
+    );
+  }
+
   const [mode, setMode] = useState<'parent' | 'attendant'>('parent');
   const [isOnline, setIsOnline] = useState<boolean>(true);
   const [gpsFresh, setGpsFresh] = useState<boolean>(true);
@@ -251,6 +262,21 @@ export const App: React.FC = () => {
 
         {/* Main Content Body */}
         <main style={{ flex: 1, padding: '16px', display: 'flex', flexDirection: 'column', gap: '14px', boxSizing: 'border-box' }}>
+          <div
+            role="alert"
+            style={{
+              padding: '10px 12px',
+              borderRadius: 8,
+              border: '1px solid #f59e0b',
+              background: '#451a03',
+              color: '#fef3c7',
+              fontSize: 11,
+              lineHeight: 1.45,
+              fontWeight: 700,
+            }}
+          >
+            DEMO MODE — Sample records and simulated actions only. No live GPS, RFID or parent data is connected. Do not use for transport operations.
+          </div>
           {mode === 'parent' ? (
             <ParentAppView
               childrenList={childrenList}

@@ -1,8 +1,8 @@
-import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
 import http from 'http';
 import { AddressInfo } from 'net';
 import { createServer, createServices, AppServices } from '../apps/api/src/server';
-import { ApiClient } from '../packages/client-sdk/src/api-client';
+import { ApiClient, ApiClientError } from '../packages/client-sdk/src/api-client';
 import { RealtimeClient } from '../packages/client-sdk/src/realtime';
 import { OfflineSyncEngine, MemoryQueueStorage } from '../packages/client-sdk/src/offline-queue';
 import { AttendantService } from '../apps/mobile/src/services/attendant.service';
@@ -122,6 +122,17 @@ describe('Frontend Surfaces & Client SDK Verification (Prompt 2)', () => {
     });
     tripId = trip.id;
     await services.tripService.startTrip(tripId);
+    await services.container.staffRepo.create({
+      id: 'staff_attendant_01',
+      userId: 'attendant_01',
+      schoolId,
+      role: 'ATTENDANT',
+      name: 'Test Attendant',
+      phone: '+10000000000',
+      assignedBusId: busId,
+      status: 'ACTIVE',
+      createdAt: new Date().toISOString(),
+    });
 
     // Start HTTP Server
     server = createServer(services);
@@ -200,7 +211,7 @@ describe('Frontend Surfaces & Client SDK Verification (Prompt 2)', () => {
       );
 
       // Offline scan should not throw - it falls back to local queue
-      const feedback = await offlineAttendant.handleScan('CARD_OFFLINE_001', tripId);
+      const feedback = await offlineAttendant.handleScan(cardToken1, tripId);
       expect(feedback.type).toBe('SUCCESS');
       expect(feedback.message).toContain('OFFLINE');
 
@@ -218,6 +229,9 @@ describe('Frontend Surfaces & Client SDK Verification (Prompt 2)', () => {
       const itemsAfterFailedFlush = await offlineStorage.getAll();
       expect(itemsAfterFailedFlush[0].status).toBe('FAILED');
       expect(itemsAfterFailedFlush[0].retryCount).toBe(1);
+      await offlineStorage.update(itemsAfterFailedFlush[0].localId, {
+        lastAttemptAt: new Date(Date.now() - 2_000).toISOString(),
+      });
 
       // Now create an online sync engine with valid API client to simulate network recovery
       const recoveredSync = new OfflineSyncEngine(offlineStorage, attendantClient, 'offline_device_99');
@@ -227,6 +241,49 @@ describe('Frontend Surfaces & Client SDK Verification (Prompt 2)', () => {
 
       const itemsAfterSync = await offlineStorage.getAll();
       expect(itemsAfterSync[0].status).toBe('SYNCED');
+    });
+
+    it('does not queue or report success for authorization failures', async () => {
+      const rejectedClient = new ApiClient({ baseUrl });
+      vi.spyOn(rejectedClient, 'scanRfid').mockRejectedValue(
+        new ApiClientError('FORBIDDEN: Reader is not assigned', 403, 'FORBIDDEN')
+      );
+      const storage = new MemoryQueueStorage();
+      const service = new AttendantService(
+        rejectedClient,
+        new OfflineSyncEngine(storage, rejectedClient, 'rejected_device'),
+        'rejected_device',
+        readerHardwareId
+      );
+
+      const feedback = await service.handleScan(cardToken1, tripId);
+      expect(feedback.type).toBe('ERROR');
+      expect(await storage.getAll()).toHaveLength(0);
+    });
+
+    it('preserves RFID identity and timestamp when transient API errors queue scans', async () => {
+      const unavailableClient = new ApiClient({ baseUrl });
+      vi.spyOn(unavailableClient, 'scanRfid').mockRejectedValue(
+        new ApiClientError('Service unavailable', 503, 'SERVICE_UNAVAILABLE')
+      );
+      const storage = new MemoryQueueStorage();
+      const service = new AttendantService(
+        unavailableClient,
+        new OfflineSyncEngine(storage, unavailableClient, 'offline_device'),
+        'offline_device',
+        readerHardwareId
+      );
+
+      const feedback = await service.handleScan(cardToken1, tripId);
+      const [queued] = await storage.getAll();
+      expect(feedback.message).toContain('OFFLINE');
+      expect(queued.event.idempotencyKey).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i);
+      expect(queued.event.eventTimestamp).toBe(feedback.timestamp);
+      expect(queued.event.metadata).toMatchObject({
+        offlineRfidScan: true,
+        cardId: cardToken1,
+        readerHardwareId,
+      });
     });
 
     it('submits manual attendance override with mandatory explanation and creates audit log', async () => {

@@ -13,7 +13,7 @@ export interface GPSLocation {
   latitude: number;
   longitude: number;
 
-  location: GeoJSONPoint;
+  location?: GeoJSONPoint;
 
   speed?: number;
   heading?: number;
@@ -29,11 +29,10 @@ export interface GPSLocation {
    * Timestamp when the server received/ingested this location.
    * Used to calculate GPS freshness (ADR-8): stale if receivedAt - recordedAt > threshold.
    */
-  receivedAt: string;
+  receivedAt?: string;
 }
 
 export interface GeoJSONPoint {
   type: "Point";
   coordinates: [number, number]; // [longitude, latitude]
 }
-

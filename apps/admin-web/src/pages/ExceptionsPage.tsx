@@ -4,6 +4,7 @@ import { useTheme } from '../theme/ThemeContext';
 import { radii, shadows } from '../theme/design-system';
 import { StatusBadge } from '../components/ui/SharedComponents';
 import { ApiClient } from '@school-transport-platform/client-sdk';
+import { JourneyException } from '@school-transport-platform/shared-types';
 import { TriangleAlert, CircleCheck, AlertCircle, Clock, BusFront, MapPin, ArrowRight } from 'lucide-react';
 
 interface ExceptionsPageProps {
@@ -15,57 +16,33 @@ export const ExceptionsPage: React.FC<ExceptionsPageProps> = ({ apiClient }) => 
   const { colors, isDark } = useTheme();
   const [filter, setFilter] = useState<'ALL' | 'OPEN' | 'RESOLVED'>('OPEN');
 
-  const [exceptions, setExceptions] = useState([
-    {
-      id: 'ex_01',
-      title: 'Student Exit Not Recorded',
-      type: 'MISSING_EXIT',
-      severity: 'CRITICAL',
-      studentName: 'Aarav Sharma (Class 7-B)',
-      busNumber: 'Bus 12',
-      stopName: 'Sector 62 Metro Gate #2',
-      time: '07:49 AM',
-      description: 'Bus reached stop 5 min ago. Student RFID exit scan has not been recorded by attendant.',
-      actionRequired: 'Verify student physical presence or record manual confirmation.',
-      status: 'OPEN',
-    },
-    {
-      id: 'ex_02',
-      title: 'Location Signal Unavailable',
-      type: 'GPS_SIGNAL_LOST',
-      severity: 'WARNING',
-      studentName: 'Corridor Transit',
-      busNumber: 'Bus 14',
-      stopName: 'Ring Road Corridor',
-      time: '07:41 AM',
-      description: 'No location update received for 8 minutes (>60s threshold exceeded).',
-      actionRequired: 'Attendant cellular connection check requested.',
-      status: 'OPEN',
-    },
-    {
-      id: 'ex_03',
-      title: 'Wrong Bus Boarding Prevented',
-      type: 'WRONG_BUS_BOARDING',
-      severity: 'RESOLVED',
-      studentName: 'Kabir Malhotra (Class 6-A)',
-      busNumber: 'Bus 12 (Assigned: Bus 07)',
-      stopName: 'Stop 1: Sector 62',
-      time: '07:38 AM',
-      description: 'Student attempted to tap card on Bus 12. State machine blocked unauthorized boarding.',
-      actionRequired: 'Resolved: Attendant directed student to assigned Bus 07.',
-      status: 'RESOLVED',
-    },
-  ]);
+  const [exceptions, setExceptions] = useState<JourneyException[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   useEffect(() => {
-    apiClient.getExceptions().then((apiEx) => {
-      if (apiEx && apiEx.length > 0) {
-        // Enriched list
-      }
-    }).catch(() => {});
+    let active = true;
+    apiClient.getExceptions()
+      .then((apiExceptions) => {
+        if (active) {
+          setExceptions(apiExceptions);
+          setLoadError(null);
+        }
+      })
+      .catch((error: unknown) => {
+        if (active) setLoadError(error instanceof Error ? error.message : 'Exception records could not be loaded.');
+      })
+      .finally(() => {
+        if (active) setIsLoading(false);
+      });
+    return () => { active = false; };
   }, [apiClient]);
 
-  const filtered = exceptions.filter((e) => filter === 'ALL' || e.status === filter);
+  const filtered = exceptions.filter((e) =>
+    filter === 'ALL' || (filter === 'OPEN' ? e.status !== 'RESOLVED' && e.status !== 'DISMISSED' : e.status === 'RESOLVED' || e.status === 'DISMISSED')
+  );
+  const openCount = exceptions.filter((exception) => exception.status !== 'RESOLVED' && exception.status !== 'DISMISSED').length;
+  const resolvedCount = exceptions.length - openCount;
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', maxWidth: '1100px' }}>
@@ -87,8 +64,8 @@ export const ExceptionsPage: React.FC<ExceptionsPageProps> = ({ apiClient }) => 
         {/* Filter buttons */}
         <div style={{ display: 'flex', gap: '6px' }}>
           {[
-            { id: 'OPEN', label: 'Action Required (2)' },
-            { id: 'RESOLVED', label: 'Resolved (1)' },
+            { id: 'OPEN', label: `Action Required (${openCount})` },
+            { id: 'RESOLVED', label: `Resolved (${resolvedCount})` },
             { id: 'ALL', label: 'All Alerts' },
           ].map((tab) => (
             <button
@@ -113,7 +90,13 @@ export const ExceptionsPage: React.FC<ExceptionsPageProps> = ({ apiClient }) => 
       </div>
 
       {/* Exceptions List */}
+      {loadError && (
+        <div role="alert" style={{ padding: 14, borderRadius: radii.md, border: `1px solid ${colors.dangerBorder}`, background: colors.dangerLight, color: colors.danger }}>
+          Exception records could not be loaded: {loadError}
+        </div>
+      )}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+        {isLoading && <p role="status" style={{ color: colors.textSecondary }}>Loading safety exceptions…</p>}
         {filtered.map((item) => (
           <div
             key={item.id}
@@ -163,19 +146,19 @@ export const ExceptionsPage: React.FC<ExceptionsPageProps> = ({ apiClient }) => 
                 </div>
                 <div>
                   <h3 style={{ fontSize: '17px', fontWeight: 800, color: item.status === 'OPEN' ? colors.danger : colors.textPrimary, margin: 0 }}>
-                    {item.title}
+                    {item.type.replaceAll('_', ' ')}
                   </h3>
                   <div style={{ fontSize: '12px', color: colors.textSecondary, marginTop: '2px', display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
-                    <span>Target: <strong>{item.studentName}</strong></span>
+                    <span>Target: <strong>{item.studentId ? `Student ${item.studentId}` : 'Trip/bus event'}</strong></span>
                     <span>&bull;</span>
                     <span style={{ display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
                       <BusFront size={12} strokeWidth={2} />
-                      {item.busNumber}
+                      {item.busId ? `Bus ${item.busId}` : 'Bus not recorded'}
                     </span>
                     <span>&bull;</span>
                     <span style={{ display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
                       <MapPin size={12} strokeWidth={2} />
-                      {item.stopName}
+                      {item.tripId ? `Trip ${item.tripId}` : 'Stop not recorded'}
                     </span>
                   </div>
                 </div>
@@ -184,7 +167,7 @@ export const ExceptionsPage: React.FC<ExceptionsPageProps> = ({ apiClient }) => 
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <span style={{ fontSize: '11px', color: colors.textMuted, fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
                   <Clock size={12} strokeWidth={2} />
-                  {item.time}
+                  {new Date(item.createdAt).toLocaleString()}
                 </span>
                 <StatusBadge
                   type={item.status === 'OPEN' ? 'danger' : 'success'}
@@ -205,9 +188,11 @@ export const ExceptionsPage: React.FC<ExceptionsPageProps> = ({ apiClient }) => 
                 lineHeight: 1.5,
               }}
             >
-              <div>{item.description}</div>
+              <div>{item.description || `Recorded exception type: ${item.type}`}</div>
               <div style={{ fontSize: '12px', color: item.status === 'OPEN' ? colors.danger : colors.success, fontWeight: 700, marginTop: '4px' }}>
-                {item.actionRequired}
+                {item.status === 'RESOLVED' || item.status === 'DISMISSED'
+                  ? item.resolutionReason || 'Resolution recorded.'
+                  : 'Review the source event and resolve only after verifying the evidence.'}
               </div>
             </div>
 
@@ -217,6 +202,11 @@ export const ExceptionsPage: React.FC<ExceptionsPageProps> = ({ apiClient }) => 
             </div>
           </div>
         ))}
+        {!isLoading && !loadError && filtered.length === 0 && (
+          <p style={{ padding: 24, textAlign: 'center', color: colors.textSecondary }}>
+            No exceptions in this category.
+          </p>
+        )}
       </div>
     </div>
   );

@@ -4,8 +4,12 @@ import {
   JourneyEventResult,
   JourneyState,
 } from '@school-transport-platform/shared-types';
-import { ApiClient } from '@school-transport-platform/client-sdk';
-import { OfflineSyncEngine } from '@school-transport-platform/client-sdk';
+import {
+  ApiClient,
+  ApiClientError,
+  OfflineSyncEngine,
+  PersistentQueueStorage,
+} from '@school-transport-platform/client-sdk';
 import { generateUuidV7 } from '@school-transport-platform/utils';
 
 export type ScanVisualFeedback = 'SUCCESS' | 'DUPLICATE' | 'WRONG_BUS' | 'ERROR';
@@ -16,6 +20,22 @@ export interface ScanFeedback {
   message: string;
   newState?: JourneyState;
   timestamp: string;
+}
+
+export async function createSqliteAttendantService(options: {
+  apiClient: ApiClient;
+  deviceId: string;
+  hardwareReaderId: string;
+}): Promise<AttendantService> {
+  const { SqliteDurableStorageAdapter } = await import('./mobile-queue.adapter.js');
+  const queue = new PersistentQueueStorage(new SqliteDurableStorageAdapter());
+  await queue.init();
+  return new AttendantService(
+    options.apiClient,
+    new OfflineSyncEngine(queue, options.apiClient, options.deviceId),
+    options.deviceId,
+    options.hardwareReaderId
+  );
 }
 
 export class AttendantService {
@@ -55,7 +75,11 @@ export class AttendantService {
   /**
    * Processes an RFID scan inside a moving school bus with immediate UI feedback.
    */
-  public async handleScan(cardId: string, tripId: string): Promise<ScanFeedback> {
+  public async handleScan(
+    cardId: string,
+    tripId: string,
+    offlineEventType: 'STUDENT_BOARDING' | 'STUDENT_EXIT' = 'STUDENT_BOARDING'
+  ): Promise<ScanFeedback> {
     const timestamp = new Date().toISOString();
     const idempotencyKey = generateUuidV7();
 
@@ -110,15 +134,36 @@ export class AttendantService {
         newState: result.journeyState,
         timestamp,
       };
-    } catch (err: any) {
+    } catch (err: unknown) {
+      if (err instanceof ApiClientError) {
+        if (err.code === 'WRONG_BUS') {
+          return { type: 'WRONG_BUS', message: 'Student is not assigned to this trip.', timestamp };
+        }
+        const retryable = err.status === 408 || err.status === 425 || err.status === 429 || err.status >= 500;
+        if (!retryable) {
+          return {
+            type: 'ERROR',
+            message: `Scan could not be verified: ${err.message}`,
+            timestamp,
+          };
+        }
+      } else if (!(err instanceof TypeError)) {
+        return {
+          type: 'ERROR',
+          message: err instanceof Error ? err.message : 'Scan could not be verified.',
+          timestamp,
+        };
+      }
+
       // 2. Offline fallback: buffer event locally in SQLite/SyncEngine
       await this.syncEngine.enqueue({
         idempotencyKey,
-        eventType: 'STUDENT_BOARDING',
+        eventType: offlineEventType,
         tripId,
         eventTimestamp: timestamp,
         source: 'RFID',
         deviceId: this.deviceId,
+        metadata: { offlineRfidScan: true, cardId, readerHardwareId: this.hardwareReaderId },
       });
 
       return {

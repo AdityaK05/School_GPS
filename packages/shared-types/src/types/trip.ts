@@ -9,9 +9,9 @@ export interface Trip {
   driverId?: string;
   attendantId?: string;
 
-  tripDate: string;
+  tripDate?: string;
 
-  direction: "MORNING" | "EVENING";
+  direction?: "MORNING" | "EVENING";
 
   status:
     | "SCHEDULED"
@@ -22,4 +22,8 @@ export interface Trip {
 
   startedAt?: string;
   completedAt?: string;
+  createdAt?: string;
+  updatedAt?: string;
+  date?: string;
+  tripType?: "PICKUP" | "DROP_OFF";
 }

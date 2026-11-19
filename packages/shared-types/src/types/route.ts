@@ -3,9 +3,12 @@ export interface Route {
   schoolId: string;
 
   name: string;
-  code: string;
+  code?: string;
 
-  direction: "MORNING" | "EVENING";
+  direction?: "MORNING" | "EVENING";
 
-  status: "ACTIVE" | "INACTIVE";
+  status?: "ACTIVE" | "INACTIVE";
+  description?: string;
+  createdAt?: string;
+  stops?: unknown[];
 }

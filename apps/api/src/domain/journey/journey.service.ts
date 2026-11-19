@@ -79,15 +79,28 @@ export class JourneyService {
 
       // Check WRONG_STOP_EXIT for student exit
       if (event.eventType === 'STUDENT_EXIT' && tripStudent) {
+        if (!tripStudent.expectedExitStopId) {
+          throw new Error(`Trip ${event.tripId} manifest has no authorized exit stop for student ${event.studentId}`);
+        }
         const expectedStop = await this.routeRepo.findStopById(tripStudent.expectedExitStopId);
-        const exitException = ExceptionEngine.evaluateExitLocation(
-          expectedStop,
-          event.latitude,
-          event.longitude,
-          event.studentId,
-          event.tripId,
-          trip.schoolId
-        );
+        let outsideAuthorizedStop = false;
+        if (expectedStop && event.latitude !== undefined && event.longitude !== undefined) {
+          outsideAuthorizedStop = !(await this.routeRepo.isPointWithinStopGeofence(
+            expectedStop.id,
+            event.latitude,
+            event.longitude
+          ));
+        }
+        const exitException = outsideAuthorizedStop
+          ? ExceptionEngine.evaluateExitLocation(
+              expectedStop,
+              event.latitude,
+              event.longitude,
+              event.studentId,
+              event.tripId,
+              trip.schoolId
+            )
+          : null;
         if (exitException) {
           createdException = exitException;
           await this.exceptionRepo.create(createdException);
@@ -231,7 +244,7 @@ export class JourneyService {
           ts.studentId,
           tripId,
           trip.schoolId,
-          ts.expectedExitStopId
+          ts.expectedExitStopId || ''
         );
         if (exception) {
           await this.exceptionRepo.create(exception);

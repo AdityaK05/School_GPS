@@ -9,7 +9,7 @@ export class RealtimeClient {
   private status: RealtimeStatus = 'DISCONNECTED';
   private subscriptions = new Map<string, Set<RealtimeEventHandler>>();
   private processedEventIds = new Set<string>();
-  private reconnectTimer?: NodeJS.Timeout;
+  private reconnectTimer?: ReturnType<typeof setTimeout>;
 
   public getStatus(): RealtimeStatus {
     return this.status;
@@ -277,4 +277,3 @@ export class SupabaseRealtimeClient {
     this.onStatusChange?.('DISCONNECTED');
   }
 }
-

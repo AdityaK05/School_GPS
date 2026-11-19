@@ -1,8 +1,8 @@
 import { JourneyEvent } from '@school-transport-platform/shared-types';
 import { generateUuidV7 } from '@school-transport-platform/utils';
-import { ApiClient } from './api-client';
+import { ApiClient, ApiClientError } from './api-client';
 
-export type QueueItemStatus = 'PENDING' | 'SYNCING' | 'SYNCED' | 'FAILED';
+export type QueueItemStatus = 'PENDING' | 'SYNCING' | 'SYNCED' | 'FAILED' | 'REJECTED';
 
 export interface QueuedEvent {
   localId: string;
@@ -55,21 +55,19 @@ export class PersistentQueueStorage implements IQueueStorage {
 
   public async init(): Promise<void> {
     if (this.initialized) return;
-    try {
-      const raw = await this.adapter.read();
-      if (raw) {
-        const parsed: QueuedEvent[] = JSON.parse(raw);
-        for (const item of parsed) {
-          // Crash-recovery: If the application terminated while SYNCING, reset to PENDING
-          if (item.status === 'SYNCING') {
-            item.status = 'PENDING';
-          }
-          this.items.set(item.localId, item);
-        }
+    const raw = await this.adapter.read();
+    if (raw) {
+      const parsed: unknown = JSON.parse(raw);
+      if (!Array.isArray(parsed)) {
+        throw new Error('Offline queue storage is corrupt: expected an event list');
       }
-    } catch {
-      // In case of corrupt file, start fresh
-      this.items.clear();
+      for (const item of parsed as QueuedEvent[]) {
+        if (!item || typeof item.localId !== 'string' || typeof item.idempotencyKey !== 'string') {
+          throw new Error('Offline queue storage is corrupt: event identity is missing');
+        }
+        if (item.status === 'SYNCING') item.status = 'PENDING';
+        this.items.set(item.localId, item);
+      }
     }
     this.initialized = true;
   }
@@ -134,13 +132,19 @@ export class OfflineSyncEngine {
     private deviceId: string
   ) {}
 
+  public getRetryDelayMs(retryCount: number): number {
+    const baseDelayMs = 1000;
+    const maxDelayMs = 60_000;
+    return Math.min(maxDelayMs, baseDelayMs * 2 ** Math.max(0, retryCount));
+  }
+
   /**
    * Enqueues an offline event locally with UUID v7 idempotency key.
    */
   public async enqueue(event: Partial<JourneyEvent>): Promise<QueuedEvent> {
     const idempotencyKey = event.idempotencyKey || generateUuidV7();
     const queued: QueuedEvent = {
-      localId: `local_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+      localId: generateUuidV7(),
       idempotencyKey,
       event: {
         ...event,
@@ -170,7 +174,14 @@ export class OfflineSyncEngine {
 
     try {
       const all = await this.storage.getAll();
-      const pendingItems = all.filter((i) => i.status === 'PENDING' || i.status === 'FAILED');
+      const now = Date.now();
+      const pendingItems = all.filter((item) => {
+        if (item.status === 'PENDING') return true;
+        if (item.status !== 'FAILED') return false;
+        if (!item.lastAttemptAt) return true;
+        const lastAttempt = new Date(item.lastAttemptAt).getTime();
+        return Number.isFinite(lastAttempt) && now - lastAttempt >= this.getRetryDelayMs(item.retryCount);
+      });
 
       if (pendingItems.length === 0) return { synced: 0, failed: 0 };
 
@@ -184,13 +195,13 @@ export class OfflineSyncEngine {
 
       try {
         batchResponse = await this.apiClient.batchSyncEvents(this.deviceId, eventsToSubmit);
-      } catch (err: any) {
-        // Network failure during batch transmission -> revert to FAILED with incremented retry count
+      } catch (err: unknown) {
+        const permanentFailure = err instanceof ApiClientError && err.status >= 400 && err.status < 500;
         for (const item of pendingItems) {
           await this.storage.update(item.localId, {
-            status: 'FAILED',
+            status: permanentFailure ? 'REJECTED' : 'FAILED',
             retryCount: item.retryCount + 1,
-            error: err.message,
+            error: err instanceof Error ? err.message : 'Batch synchronization failed',
           });
         }
         return { synced: 0, failed: pendingItems.length };
@@ -206,7 +217,7 @@ export class OfflineSyncEngine {
         } else {
           const rejected = batchResponse.rejected.find((r) => r.idempotencyKey === item.idempotencyKey);
           await this.storage.update(item.localId, {
-            status: 'FAILED',
+            status: 'REJECTED',
             retryCount: item.retryCount + 1,
             error: rejected?.error || 'Rejected by server validation',
           });

@@ -27,6 +27,7 @@ export interface JourneyException {
   status:
     | "OPEN"
     | "ACKNOWLEDGED"
+    | "INVESTIGATING"
     | "RESOLVED"
     | "DISMISSED";
 

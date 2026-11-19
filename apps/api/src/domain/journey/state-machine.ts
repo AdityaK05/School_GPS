@@ -49,11 +49,7 @@ export class JourneyStateMachine {
         return { valid: true, previousState: currentState, nextState: currentState };
 
       case 'STUDENT_EXIT':
-        if (
-          currentState === 'EXIT_PENDING' ||
-          currentState === 'ONBOARD' ||
-          currentState === 'BOARDED'
-        ) {
+        if (currentState === 'EXIT_PENDING') {
           return { valid: true, previousState: currentState, nextState: 'EXIT_RECORDED' };
         }
         return {

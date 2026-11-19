@@ -189,6 +189,19 @@ describe('Safety-Critical Backend & Deterministic Journey Engine', () => {
   });
 
   it('4. Valid exit at assigned stop transitions to EXIT_RECORDED', async () => {
+    await services.journeyService.processEvent({
+      id: 'evt_stop_reached',
+      idempotencyKey: generateUuidV7(),
+      schoolId,
+      tripId: trip.id,
+      busId,
+      stopId: exitStopId,
+      eventType: 'BUS_REACHED_STOP',
+      eventTimestamp: '2026-11-15T07:44:00Z',
+      source: 'GPS',
+      syncStatus: 'SYNCED',
+      createdAt: new Date().toISOString(),
+    });
     const validExitScan = await services.rfidService.processScan({
       cardId,
       readerHardwareId: rfidHardwareId,

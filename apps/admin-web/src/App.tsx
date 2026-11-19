@@ -25,28 +25,155 @@ import { SettingsPage } from './pages/SettingsPage';
 import { ParentAppView } from './pages/ParentAppView';
 import { AttendantAppView } from './pages/AttendantAppView';
 import { MobileAdminView } from './pages/MobileAdminView';
+import { DemoEnvironmentNotice } from './components/DemoEnvironmentNotice';
+import { PreviewDemoApiClient } from './demo-api-client';
+import { isLocalDemoMode, isVercelPreviewDemoMode } from './demo-mode';
 
 const apiBaseUrl =
   (import.meta.env?.VITE_API_BASE_URL as string) ||
-  'https://school-gps-api.onrender.com';
+  '';
 
 const authToken =
-  'test-token:22222222-2222-2222-2222-222222222222:SCHOOL_ADMIN:11111111-1111-1111-1111-111111111111';
+  sessionStorage.getItem('aegis_access_token') ||
+  (import.meta.env.DEV && !isVercelPreviewDemoMode
+    ? 'test-token:22222222-2222-2222-2222-222222222222:SCHOOL_ADMIN:11111111-1111-1111-1111-111111111111'
+    : '');
 
-const apiClient = new ApiClient({
-  baseUrl: apiBaseUrl,
-  getToken: () => authToken,
-});
+const apiClient = isVercelPreviewDemoMode
+  ? new PreviewDemoApiClient({ baseUrl: '' })
+  : new ApiClient({
+      baseUrl: apiBaseUrl,
+      getToken: () => authToken,
+    });
+
+const AdminSignIn: React.FC = () => {
+  const [email, setEmail] = React.useState('');
+  const [password, setPassword] = React.useState('');
+  const [isSubmitting, setIsSubmitting] = React.useState(false);
+  const [error, setError] = React.useState<string | null>(null);
+  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string | undefined;
+  const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined;
+
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!email.trim() || !password) {
+      setError('Enter your school account email and password.');
+      return;
+    }
+    if (!supabaseUrl || !anonKey) {
+      setError('Authentication is not configured. Set the public Supabase URL and publishable key.');
+      return;
+    }
+    setIsSubmitting(true);
+    setError(null);
+    try {
+      const response = await fetch(`${supabaseUrl.replace(/\/$/, '')}/auth/v1/token?grant_type=password`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', apikey: anonKey },
+        body: JSON.stringify({ email: email.trim(), password }),
+      });
+      const result = await response.json() as {
+        access_token?: string;
+        msg?: string;
+        message?: string;
+        error_description?: string;
+      };
+      if (!response.ok || !result.access_token) {
+        throw new Error(result.error_description || result.msg || result.message || 'Sign-in failed. Check your credentials.');
+      }
+      sessionStorage.setItem('aegis_access_token', result.access_token);
+      window.location.reload();
+    } catch (signInError) {
+      setError(signInError instanceof Error ? signInError.message : 'Sign-in could not be completed.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <main style={{ maxWidth: 420, margin: '12vh auto', padding: 28, fontFamily: 'sans-serif', color: '#0f172a' }}>
+      <div style={{ marginBottom: 24 }}>
+        <p style={{ color: '#2563eb', fontWeight: 700, fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+          School Transport Operations
+        </p>
+        <h1 style={{ margin: '6px 0', fontSize: 28 }}>Sign in</h1>
+        <p style={{ color: '#64748b', fontSize: 14 }}>Use your authorized school account to access operational data.</p>
+      </div>
+      <form onSubmit={handleSubmit} style={{ display: 'grid', gap: 14 }}>
+        <label style={{ display: 'grid', gap: 6, fontSize: 13, fontWeight: 600 }}>
+          Email
+          <input
+            type="email"
+            autoComplete="username"
+            required
+            value={email}
+            onChange={(event) => setEmail(event.target.value)}
+            style={{ padding: 12, border: '1px solid #cbd5e1', borderRadius: 8, fontSize: 14 }}
+          />
+        </label>
+        <label style={{ display: 'grid', gap: 6, fontSize: 13, fontWeight: 600 }}>
+          Password
+          <input
+            type="password"
+            autoComplete="current-password"
+            required
+            value={password}
+            onChange={(event) => setPassword(event.target.value)}
+            style={{ padding: 12, border: '1px solid #cbd5e1', borderRadius: 8, fontSize: 14 }}
+          />
+        </label>
+        {error && <p role="alert" style={{ color: '#b91c1c', fontSize: 13, margin: 0 }}>{error}</p>}
+        <button
+          type="submit"
+          disabled={isSubmitting}
+          style={{ padding: 12, border: 0, borderRadius: 8, background: '#1d4ed8', color: '#ffffff', fontWeight: 700, cursor: 'pointer' }}
+        >
+          {isSubmitting ? 'Signing in…' : 'Sign in securely'}
+        </button>
+      </form>
+    </main>
+  );
+};
 
 const AppRoutes: React.FC = () => {
   const { pathname, persona, showDemoPanel, setShowDemoPanel } = useRouter();
+
+  if (!authToken && !isLocalDemoMode) {
+    return <AdminSignIn />;
+  }
+
+  const unavailableInProduction =
+    pathname === '/attendance' ||
+    pathname === '/audit' ||
+    pathname === '/reports' ||
+    pathname === '/settings' ||
+    (pathname.startsWith('/journeys/') && pathname !== '/journeys') ||
+    (pathname.startsWith('/buses/') && pathname !== '/buses') ||
+    (pathname.startsWith('/students/') && pathname !== '/students') ||
+    (pathname.startsWith('/exceptions/') && pathname !== '/exceptions') ||
+    pathname.startsWith('/parent') ||
+    pathname.startsWith('/attendant') ||
+    pathname.startsWith('/mobile') ||
+    persona === 'parent' ||
+    persona === 'attendant' ||
+    persona === 'mobile_preview';
+  if (!isLocalDemoMode && unavailableInProduction) {
+    return (
+      <main style={{ maxWidth: 640, margin: '12vh auto', padding: 28, fontFamily: 'sans-serif' }}>
+        <h1>Workflow not enabled</h1>
+        <p>This workflow is not connected to verified production data yet. Sample records are disabled here.</p>
+        <button onClick={() => window.history.back()}>Return to the previous page</button>
+      </main>
+    );
+  }
 
   // 1. DEDICATED PARENT APPLICATION (/parent or persona === 'parent')
   if (persona === 'parent' || pathname.startsWith('/parent')) {
     return (
       <>
+        <DemoEnvironmentNotice />
         <ParentAppView apiClient={apiClient} />
-        <DemoControlPanel isOpen={showDemoPanel} onClose={() => setShowDemoPanel(false)} />
+        {isLocalDemoMode && <DemoControlPanel isOpen={showDemoPanel} onClose={() => setShowDemoPanel(false)} />}
       </>
     );
   }
@@ -55,6 +182,7 @@ const AppRoutes: React.FC = () => {
   if (persona === 'attendant' || pathname.startsWith('/attendant')) {
     return (
       <>
+        <DemoEnvironmentNotice />
         <AttendantAppView apiClient={apiClient} />
         <DemoControlPanel isOpen={showDemoPanel} onClose={() => setShowDemoPanel(false)} />
       </>
@@ -65,6 +193,7 @@ const AppRoutes: React.FC = () => {
   if (persona === 'mobile_preview' || pathname.startsWith('/mobile')) {
     return (
       <>
+        <DemoEnvironmentNotice />
         <MobileAdminView />
         <DemoControlPanel isOpen={showDemoPanel} onClose={() => setShowDemoPanel(false)} />
       </>
@@ -139,9 +268,22 @@ const AppRoutes: React.FC = () => {
   };
 
   return (
-    <AdminLayout openExceptionsCount={1}>
+    <AdminLayout>
+      {!isLocalDemoMode && (
+        <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 12 }}>
+          <button
+            onClick={() => {
+              sessionStorage.removeItem('aegis_access_token');
+              window.location.reload();
+            }}
+            style={{ padding: '7px 12px', borderRadius: 8, border: '1px solid #cbd5e1', background: '#ffffff', cursor: 'pointer' }}
+          >
+            Sign out
+          </button>
+        </div>
+      )}
       {renderAdminPage()}
-      <DemoControlPanel isOpen={showDemoPanel} onClose={() => setShowDemoPanel(false)} />
+      {isLocalDemoMode && <DemoControlPanel isOpen={showDemoPanel} onClose={() => setShowDemoPanel(false)} />}
     </AdminLayout>
   );
 };

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useRouter } from '../router/Router';
 import { useTheme } from '../theme/ThemeContext';
 import { radii, shadows } from '../theme/design-system';
@@ -11,9 +11,8 @@ import {
   ArrowRight,
   MapPin,
   Clock3,
-  Phone,
-  UserCheck,
 } from 'lucide-react';
+import { Bus, GPSLocation } from '@school-transport-platform/shared-types';
 
 interface LiveFleetPageProps {
   apiClient: ApiClient;
@@ -24,58 +23,54 @@ export const LiveFleetPage: React.FC<LiveFleetPageProps> = ({ apiClient }) => {
   const { colors } = useTheme();
   const [searchTerm, setSearchTerm] = useState('');
 
-  const [buses] = useState([
-    {
-      id: '88888888-8888-8888-8888-888888888801',
-      busNumber: 'BUS 12',
-      registrationNumber: 'UP-16-BT-9912',
-      routeName: 'Sector 62 → Oakridge Campus',
-      status: 'ON_ROUTE',
-      statusLabel: 'On route',
-      currentStop: 'Sector 62 Metro Gate #2',
-      studentsOnboard: 28,
-      capacity: 32,
-      lastUpdate: 'Updated 32 sec ago',
-      driver: 'Rajesh Kumar (+91 98765 43210)',
-      attendant: 'Sunita Devi (+91 98765 43211)',
-      speed: 38,
-    },
-    {
-      id: 'bus_14',
-      busNumber: 'BUS 14',
-      registrationNumber: 'UP-16-BT-9908',
-      routeName: 'Vaishali Metro → Oakridge Campus',
-      status: 'ON_ROUTE',
-      statusLabel: 'On route',
-      currentStop: 'Anand Vihar Crossing',
-      studentsOnboard: 24,
-      capacity: 30,
-      lastUpdate: 'Updated 20 sec ago',
-      driver: 'Amit Singh (+91 98765 43212)',
-      attendant: 'Rekha Sharma (+91 98765 43213)',
-      speed: 34,
-    },
-    {
-      id: 'bus_18',
-      busNumber: 'BUS 18',
-      registrationNumber: 'UP-16-BT-9904',
-      routeName: 'Noida City Centre → Oakridge Campus',
-      status: 'AT_SCHOOL',
-      statusLabel: 'At school',
-      currentStop: 'Campus Terminus Bay #3',
-      studentsOnboard: 32,
-      capacity: 32,
-      lastUpdate: 'Updated 1 min ago',
-      driver: 'Manoj Kumar (+91 98765 43214)',
-      attendant: 'Pooja Rani (+91 98765 43215)',
-      speed: 0,
-    },
-  ]);
+  type FleetBus = Bus & { latestLocation?: GPSLocation | null };
+  type FleetTrip = { busId: string; routeName: string; status: string; boardedCount: number; exitedCount: number };
+  type FleetRow = FleetBus & {
+    routeName: string;
+    tripInProgress: boolean;
+    studentsOnboard: number;
+    lastUpdate: string;
+  };
+  const [buses, setBuses] = useState<FleetRow[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let active = true;
+    Promise.all([apiClient.listBuses(), apiClient.listTrips()])
+      .then(([busItems, tripItems]) => {
+        if (!active) return;
+        const trips = tripItems as FleetTrip[];
+        const now = Date.now();
+        setBuses((busItems as FleetBus[]).map((bus) => {
+          const trip = trips.find((candidate) =>
+            candidate.busId === bus.id && ['STARTED', 'IN_PROGRESS'].includes(candidate.status)
+          );
+          const recordedAt = bus.latestLocation?.recordedAt;
+          const ageSeconds = recordedAt ? Math.max(0, Math.floor((now - new Date(recordedAt).getTime()) / 1000)) : null;
+          return {
+            ...bus,
+            routeName: trip?.routeName || 'No active trip',
+            tripInProgress: Boolean(trip),
+            studentsOnboard: trip ? Math.max(0, trip.boardedCount - trip.exitedCount) : 0,
+            lastUpdate: ageSeconds === null ? 'No GPS update recorded' : `GPS update ${ageSeconds}s ago`,
+          };
+        }));
+        setLoadError(null);
+      })
+      .catch((error: unknown) => {
+        if (active) setLoadError(error instanceof Error ? error.message : 'Fleet data could not be loaded.');
+      })
+      .finally(() => {
+        if (active) setIsLoading(false);
+      });
+    return () => { active = false; };
+  }, [apiClient]);
 
   const filtered = buses.filter(
     (b) =>
-      b.busNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      b.registrationNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (b.fleetNumber || b.busNumber || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (b.registrationNumber || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
       b.routeName.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
@@ -149,6 +144,11 @@ export const LiveFleetPage: React.FC<LiveFleetPageProps> = ({ apiClient }) => {
         />
       </div>
 
+      {loadError && (
+        <div role="alert" style={{ padding: 14, borderRadius: radii.md, border: `1px solid ${colors.dangerBorder}`, background: colors.dangerLight, color: colors.danger }}>
+          Fleet data could not be loaded: {loadError}
+        </div>
+      )}
       {/* Buses Cards Grid */}
       <div
         style={{
@@ -157,6 +157,7 @@ export const LiveFleetPage: React.FC<LiveFleetPageProps> = ({ apiClient }) => {
           gap: '18px',
         }}
       >
+        {isLoading && <p role="status" style={{ color: colors.textSecondary }}>Loading fleet data…</p>}
         {filtered.map((bus) => (
           <div
             key={bus.id}
@@ -195,17 +196,17 @@ export const LiveFleetPage: React.FC<LiveFleetPageProps> = ({ apiClient }) => {
                   </div>
                   <div>
                     <h2 style={{ fontSize: '17px', fontWeight: 800, color: colors.textPrimary, margin: 0 }}>
-                      {bus.busNumber}
+                      {bus.fleetNumber || bus.busNumber || 'Bus'}
                     </h2>
                     <div style={{ fontSize: '11px', color: colors.textSecondary }}>
-                      {bus.registrationNumber}
+                      {bus.registrationNumber || 'Registration not recorded'}
                     </div>
                   </div>
                 </div>
 
                 <StatusBadge
-                  type={bus.status === 'AT_SCHOOL' ? 'success' : 'info'}
-                  label={bus.statusLabel}
+                  type={bus.tripInProgress ? 'info' : bus.status === 'ACTIVE' ? 'neutral' : 'warning'}
+                  label={bus.tripInProgress ? 'Trip in progress' : bus.status}
                 />
               </div>
 
@@ -217,7 +218,11 @@ export const LiveFleetPage: React.FC<LiveFleetPageProps> = ({ apiClient }) => {
                 </div>
                 <div style={{ fontSize: '11px', color: colors.primary, fontWeight: 600, marginTop: '3px', display: 'flex', alignItems: 'center', gap: '4px' }}>
                   <MapPin size={11} strokeWidth={2} />
-                  <span>Current Stop: {bus.currentStop}</span>
+                  <span>
+                    {bus.latestLocation
+                      ? `GPS: ${bus.latestLocation.latitude.toFixed(5)}, ${bus.latestLocation.longitude.toFixed(5)}`
+                      : 'No GPS location available'}
+                  </span>
                 </div>
               </div>
 
@@ -225,12 +230,12 @@ export const LiveFleetPage: React.FC<LiveFleetPageProps> = ({ apiClient }) => {
               <div style={{ marginTop: '14px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', fontWeight: 600, marginBottom: '6px' }}>
                   <span style={{ color: colors.textSecondary }}>Onboard</span>
-                  <span style={{ color: colors.textPrimary, fontWeight: 700 }}>{bus.studentsOnboard} / {bus.capacity} students onboard</span>
+                  <span style={{ color: colors.textPrimary, fontWeight: 700 }}>{bus.studentsOnboard} / {bus.capacity} confirmed onboard</span>
                 </div>
                 <div style={{ width: '100%', height: '6px', backgroundColor: colors.borderLight, borderRadius: radii.full, overflow: 'hidden' }}>
                   <div
                     style={{
-                      width: `${(bus.studentsOnboard / bus.capacity) * 100}%`,
+                      width: `${bus.capacity > 0 ? Math.min(100, (bus.studentsOnboard / bus.capacity) * 100) : 0}%`,
                       height: '100%',
                       backgroundColor: colors.success,
                       borderRadius: radii.full,
@@ -239,17 +244,6 @@ export const LiveFleetPage: React.FC<LiveFleetPageProps> = ({ apiClient }) => {
                 </div>
               </div>
 
-              {/* Personnel contacts */}
-              <div style={{ marginTop: '14px', display: 'flex', flexDirection: 'column', gap: '3px', fontSize: '11px', color: colors.textSecondary }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-                  <Phone size={11} strokeWidth={1.8} color={colors.textMuted} />
-                  <span>Driver: <strong style={{ color: colors.textPrimary }}>{bus.driver}</strong></span>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-                  <UserCheck size={11} strokeWidth={1.8} color={colors.textMuted} />
-                  <span>Attendant: <strong style={{ color: colors.textPrimary }}>{bus.attendant}</strong></span>
-                </div>
-              </div>
             </div>
 
             {/* Footer */}
@@ -265,6 +259,9 @@ export const LiveFleetPage: React.FC<LiveFleetPageProps> = ({ apiClient }) => {
             </div>
           </div>
         ))}
+        {!isLoading && !loadError && filtered.length === 0 && (
+          <p style={{ padding: 24, textAlign: 'center', color: colors.textSecondary }}>No buses match this search.</p>
+        )}
       </div>
     </div>
   );

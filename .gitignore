@@ -24,12 +24,20 @@ Thumbs.db
 
 # Supabase local
 .supabase/
+supabase/.temp/
 
 # IDE / Editor
 .vscode/
 .idea/
 *.swp
 *.swo
+
+# Expo local state
+.expo/
+
+# Generated reports and local logs
+*.log
+coverage/
 
 # Test coverage & reports
 coverage/

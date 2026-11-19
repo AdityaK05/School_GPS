@@ -20,8 +20,6 @@ export const SafetyPulse: React.FC<{
   activeBuses: number;
   totalBuses: number;
   criticalIssues: number;
-  attentionStudentName?: string;
-  attentionDetail?: string;
   onReviewAttention?: () => void;
 }> = ({
   accountedStudents,
@@ -29,12 +27,10 @@ export const SafetyPulse: React.FC<{
   activeBuses,
   totalBuses,
   criticalIssues,
-  attentionStudentName = 'Aarav Sharma',
-  attentionDetail = 'Bus 12 · Sector 62 · Exit not recorded',
   onReviewAttention,
 }) => {
   const { colors } = useTheme();
-  const percentage = totalStudents > 0 ? Math.round((accountedStudents / totalStudents) * 100) : 100;
+  const percentage = totalStudents > 0 ? Math.round((accountedStudents / totalStudents) * 100) : 0;
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', width: '100%' }}>
@@ -147,7 +143,11 @@ export const SafetyPulse: React.FC<{
               />
             </div>
             <div style={{ fontSize: '11px', color: criticalIssues > 0 ? colors.warning : colors.success, marginTop: '6px', fontWeight: 600 }}>
-              {criticalIssues > 0 ? `${criticalIssues} student needs attention` : 'All scheduled students accounted'}
+              {totalStudents === 0
+                ? 'No active trip manifest'
+                : criticalIssues > 0
+                  ? `${criticalIssues} open safety exception${criticalIssues === 1 ? '' : 's'}`
+                  : 'All manifest students accounted'}
             </div>
           </div>
         </div>
@@ -213,12 +213,12 @@ export const SafetyPulse: React.FC<{
               </span>
             </div>
             <div style={{ fontSize: '13px', fontWeight: 600, color: colors.textSecondary, marginTop: '4px' }}>
-              Reporting
+              Fleet active
             </div>
           </div>
 
           <div style={{ fontSize: '11px', color: colors.textMuted, fontWeight: 500 }}>
-            All active on transit corridors
+            Active fleet records
           </div>
         </div>
 
@@ -334,10 +334,10 @@ export const SafetyPulse: React.FC<{
             </div>
             <div>
               <div style={{ fontSize: '13px', fontWeight: 700, color: colors.textPrimary }}>
-                {criticalIssues} student needs attention &bull; <strong style={{ color: colors.warning }}>{attentionStudentName}</strong>
+                {criticalIssues} open safety exception{criticalIssues === 1 ? '' : 's'} require review
               </div>
               <div style={{ fontSize: '12px', color: colors.textSecondary, marginTop: '2px' }}>
-                {attentionDetail}
+                Verify the recorded event evidence before resolving.
               </div>
             </div>
           </div>

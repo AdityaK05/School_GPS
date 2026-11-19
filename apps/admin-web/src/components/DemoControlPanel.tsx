@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useTheme } from '../theme/ThemeContext';
 import { radii, shadows } from '../theme/design-system';
 import { RfidIcon } from './ui/RfidIcon';
+import { isVercelPreviewDemoMode } from '../demo-mode';
 import {
   Sliders,
   Play,
@@ -16,8 +17,12 @@ import {
   Check,
 } from 'lucide-react';
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL || 'https://school-gps-api.onrender.com';
-const DEMO_TOKEN = 'test-token:22222222-2222-2222-2222-222222222222:SCHOOL_ADMIN:11111111-1111-1111-1111-111111111111';
+const API_BASE = import.meta.env.VITE_API_BASE_URL || '';
+const DEMO_TOKEN =
+  sessionStorage.getItem('aegis_access_token') ||
+  (import.meta.env.DEV && !isVercelPreviewDemoMode
+    ? 'test-token:22222222-2222-2222-2222-222222222222:SCHOOL_ADMIN:11111111-1111-1111-1111-111111111111'
+    : '');
 
 interface DemoControlPanelProps {
   isOpen: boolean;
@@ -37,6 +42,14 @@ export const DemoControlPanel: React.FC<DemoControlPanelProps> = ({
   if (!isOpen) return null;
 
   const executeApi = async (actionName: string, endpoint: string, method: string, payload?: any) => {
+    if (isVercelPreviewDemoMode) {
+      setLastLog({
+        message: 'Actions are disabled in this isolated sample-data preview. No API request was sent.',
+        type: 'info',
+        timestamp: new Date().toLocaleTimeString(),
+      });
+      return;
+    }
     setLoadingAction(actionName);
     try {
       const res = await fetch(`${API_BASE}${endpoint}`, {
@@ -223,8 +236,12 @@ export const DemoControlPanel: React.FC<DemoControlPanelProps> = ({
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           <Sliders size={16} strokeWidth={2.2} color="#ffffff" />
           <div>
-            <div style={{ fontSize: '13px', fontWeight: 700, color: '#ffffff' }}>Demo Operator Console</div>
-            <div style={{ fontSize: '10px', color: '#94a3b8' }}>Real Event Pipeline &amp; Safety Engine</div>
+            <div style={{ fontSize: '13px', fontWeight: 700, color: '#ffffff' }}>
+              {isVercelPreviewDemoMode ? 'Preview Demo Controls' : 'Demo Operator Console'}
+            </div>
+            <div style={{ fontSize: '10px', color: '#94a3b8' }}>
+              {isVercelPreviewDemoMode ? 'Sample-only preview · actions disabled' : 'Real Event Pipeline &amp; Safety Engine'}
+            </div>
           </div>
         </div>
 
@@ -256,7 +273,11 @@ export const DemoControlPanel: React.FC<DemoControlPanelProps> = ({
           color: colors.primary,
         }}
       >
-        Scenario: <strong style={{ color: colors.textPrimary }}>Bus 12 (North Corridor)</strong> &bull; Student: <strong style={{ color: colors.primary }}>Aarav Sharma</strong>
+        Scenario: <strong style={{ color: colors.textPrimary }}>
+          {isVercelPreviewDemoMode ? 'Demo Bus 12 (North Corridor)' : 'Bus 12 (North Corridor)'}
+        </strong> &bull; Student: <strong style={{ color: colors.primary }}>
+          {isVercelPreviewDemoMode ? 'Demo Student' : 'Aarav Sharma'}
+        </strong>
       </div>
 
       {/* Action Buttons Grid */}
