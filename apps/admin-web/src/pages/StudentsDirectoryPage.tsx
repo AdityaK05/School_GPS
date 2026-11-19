@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useRouter } from '../router/Router';
 import { useTheme } from '../theme/ThemeContext';
 import { radii, shadows } from '../theme/design-system';
 import { StatusBadge } from '../components/ui/SharedComponents';
 import { RfidIcon } from '../components/ui/RfidIcon';
 import { ApiClient } from '@school-transport-platform/client-sdk';
+import { Student } from '@school-transport-platform/shared-types';
 import {
   Search,
   UsersRound,
@@ -25,79 +26,69 @@ export const StudentsDirectoryPage: React.FC<StudentsDirectoryPageProps> = ({ ap
   const { colors } = useTheme();
   const [searchTerm, setSearchTerm] = useState('');
   const [gradeFilter, setGradeFilter] = useState('ALL');
+  type StudentRecord = Student & {
+    assignment?: { routeId: string; stopId: string };
+  };
+  type StudentRow = {
+    id: string;
+    name: string;
+    admission: string;
+    className: string;
+    busNumber: string;
+    routeName: string;
+    stopName: string;
+    todayStatus: string;
+    todayStatusLabel: string;
+  };
+  const [students, setStudents] = useState<StudentRow[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
-  const [students] = useState([
-    {
-      id: 'c1111111-1111-1111-1111-111111111101',
-      name: 'Aarav Sharma',
-      admission: 'ADM-2024-001',
-      className: 'Class 7-B',
-      busNumber: 'Bus 12',
-      routeName: 'North Corridor Express',
-      stopName: 'Sector 62 Metro Gate #2',
-      rfidStatus: 'ACTIVE',
-      cardId: 'CARD-AARAV-01',
-      todayStatus: 'BOARDED',
-      todayStatusLabel: 'Boarded (Bus 12)',
-      guardian: 'Priya Devi (+91 98765 43210)',
-    },
-    {
-      id: 'c1111111-1111-1111-1111-111111111102',
-      name: 'Diya Sharma',
-      admission: 'ADM-2024-002',
-      className: 'Class 2-B',
-      busNumber: 'Bus 12',
-      routeName: 'North Corridor Express',
-      stopName: 'Shipra Sun City Gate #4',
-      rfidStatus: 'ACTIVE',
-      cardId: 'CARD-DIYA-02',
-      todayStatus: 'BOARDED',
-      todayStatusLabel: 'Boarded (Bus 12)',
-      guardian: 'Priya Devi (+91 98765 43210)',
-    },
-    {
-      id: 'c1111111-1111-1111-1111-111111111104',
-      name: 'Ananya Verma',
-      admission: 'ADM-2024-004',
-      className: 'Class 5-A',
-      busNumber: 'Bus 14',
-      routeName: 'Vaishali Corridor',
-      stopName: 'Vaishali Metro Station',
-      rfidStatus: 'ACTIVE',
-      cardId: 'CARD-ANANYA-04',
-      todayStatus: 'ONBOARD',
-      todayStatusLabel: 'On the way',
-      guardian: 'Vikram Verma (+91 98765 43216)',
-    },
-    {
-      id: 'c1111111-1111-1111-1111-111111111105',
-      name: 'Rohan Gupta',
-      admission: 'ADM-2024-005',
-      className: 'Class 8-C',
-      busNumber: 'Bus 18',
-      routeName: 'Indirapuram Express',
-      stopName: 'Indirapuram Habitat Centre',
-      rfidStatus: 'ACTIVE',
-      cardId: 'CARD-ROHAN-05',
-      todayStatus: 'COMPLETED',
-      todayStatusLabel: 'At school',
-      guardian: 'Meera Gupta (+91 98765 43218)',
-    },
-    {
-      id: 'c1111111-1111-1111-1111-111111111103',
-      name: 'Kabir Mehta',
-      admission: 'ADM-2024-003',
-      className: 'Class 6-A',
-      busNumber: 'Bus 08',
-      routeName: 'East Ring Road Corridor',
-      stopName: 'Preet Vihar Crossing',
-      rfidStatus: 'ACTIVE',
-      cardId: 'CARD-KABIR-03',
-      todayStatus: 'EXPECTED',
-      todayStatusLabel: 'Scheduled / At Stop',
-      guardian: 'Sanjay Mehta (+91 98765 43219)',
-    },
-  ]);
+  useEffect(() => {
+    let active = true;
+    Promise.all([
+      apiClient.getStudents(),
+      apiClient.listRoutes(),
+      apiClient.listTrips(),
+      apiClient.listJourneys(),
+      apiClient.listStops(),
+    ])
+      .then(([studentItems, routeItems, tripItems, journeyItems, stopItems]) => {
+        if (!active) return;
+        const routes = routeItems as Array<{ id: string; name: string }>;
+        const trips = tripItems as Array<{ busId: string; routeId: string; busFleetNumber?: string; status: string }>;
+        const journeys = journeyItems as Array<{ student: Student; state: string; bus: { fleetNumber?: string } | null }>;
+        const stops = stopItems as Array<{ id: string; name: string }>;
+        setStudents((studentItems as StudentRecord[]).map((student) => {
+          const route = routes.find((candidate) => candidate.id === student.assignment?.routeId);
+          const stop = stops.find((candidate) => candidate.id === student.assignment?.stopId);
+          const trip = trips.find((candidate) => candidate.routeId === route?.id && ['STARTED', 'IN_PROGRESS'].includes(candidate.status));
+          const journey = journeys.find((candidate) => candidate.student.id === student.id);
+          const status = journey?.state || 'EXPECTED';
+          return {
+            id: student.id,
+            name: `${student.firstName} ${student.lastName}`.trim(),
+            admission: student.admissionNumber,
+            className: [student.className, student.section].filter(Boolean).join('-') || 'Class not set',
+            busNumber: trip?.busFleetNumber || 'No active trip',
+            routeName: route?.name || 'Route not assigned',
+            stopName: stop?.name || 'Stop not assigned',
+            todayStatus: status,
+            todayStatusLabel: status.replaceAll('_', ' ').toLowerCase(),
+          };
+        }));
+        setLoadError(null);
+      })
+      .catch((error: unknown) => {
+        if (active) setLoadError(error instanceof Error ? error.message : 'Student records could not be loaded.');
+      })
+      .finally(() => {
+        if (active) setIsLoading(false);
+      });
+    return () => { active = false; };
+  }, [apiClient]);
+
+  const gradeOptions = ['ALL', ...new Set(students.map((student) => student.className).filter((value) => value !== 'Class not set'))];
 
   const filtered = students.filter((s) => {
     const matchesSearch =
@@ -183,7 +174,7 @@ export const StudentsDirectoryPage: React.FC<StudentsDirectoryPageProps> = ({ ap
         </div>
 
         <div style={{ display: 'flex', gap: '6px' }}>
-          {['ALL', 'Class 7', 'Class 2', 'Class 5', 'Class 8'].map((g) => (
+          {gradeOptions.map((g) => (
             <button
               key={g}
               onClick={() => setGradeFilter(g)}
@@ -205,7 +196,13 @@ export const StudentsDirectoryPage: React.FC<StudentsDirectoryPageProps> = ({ ap
       </div>
 
       {/* Students List */}
+      {loadError && (
+        <div role="alert" style={{ padding: 14, borderRadius: radii.md, border: `1px solid ${colors.dangerBorder}`, background: colors.dangerLight, color: colors.danger }}>
+          Student records could not be loaded: {loadError}
+        </div>
+      )}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+        {isLoading && <p role="status" style={{ color: colors.textSecondary }}>Loading student records…</p>}
         {filtered.map((s) => (
           <div
             key={s.id}
@@ -263,7 +260,7 @@ export const StudentsDirectoryPage: React.FC<StudentsDirectoryPageProps> = ({ ap
               </div>
 
               <StatusBadge
-                type={s.todayStatus === 'COMPLETED' ? 'success' : s.todayStatus === 'BOARDED' ? 'info' : 'neutral'}
+                type={s.todayStatus === 'COMPLETED' || s.todayStatus === 'EXIT_RECORDED' ? 'success' : s.todayStatus === 'BOARDED' || s.todayStatus === 'ONBOARD' ? 'info' : 'neutral'}
                 label={s.todayStatusLabel}
               />
 
@@ -273,6 +270,9 @@ export const StudentsDirectoryPage: React.FC<StudentsDirectoryPageProps> = ({ ap
             </div>
           </div>
         ))}
+        {!isLoading && !loadError && filtered.length === 0 && (
+          <p style={{ padding: 24, textAlign: 'center', color: colors.textSecondary }}>No student records match this search.</p>
+        )}
       </div>
     </div>
   );

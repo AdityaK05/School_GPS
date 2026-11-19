@@ -45,8 +45,18 @@ export class GPSService {
       throw new Error(`Bus ${gpsDevice.busId} associated with GPS device not found`);
     }
 
-    // 2. Persist GPS Location with Dual Timestamps & Denormalized school_id (ADR-11)
+    const previousLocation = await this.gpsRepo.getLatestLocationByBus(bus.id);
     const serverReceivedAt = new Date().toISOString();
+    const recordedAtMs = new Date(normalized.recordedAt).getTime();
+    const receivedAtMs = new Date(serverReceivedAt).getTime();
+    if (!Number.isFinite(recordedAtMs) || recordedAtMs > receivedAtMs + THRESHOLDS.GPS_FRESHNESS_SECONDS * 1000) {
+      throw new Error('GPS timestamp is invalid or too far in the future');
+    }
+    const isOutOfOrder =
+      previousLocation !== null &&
+      recordedAtMs <= new Date(previousLocation.recordedAt).getTime();
+
+    // Persist telemetry as history, but never let a delayed packet roll operational state backward.
     const locationRecord: GPSLocation = {
       id: crypto.randomUUID(),
       busId: bus.id,
@@ -68,6 +78,14 @@ export class GPSService {
     // 3. Evaluate GPS Freshness (60s threshold - ADR-8)
     const staleSeconds = (new Date(serverReceivedAt).getTime() - new Date(normalized.recordedAt).getTime()) / 1000;
     const isStale = staleSeconds > THRESHOLDS.GPS_FRESHNESS_SECONDS;
+
+    if (isOutOfOrder) {
+      return {
+        locationId: locationRecord.id,
+        busId: bus.id,
+        stale: true,
+      };
+    }
 
     if (isStale) {
       const gpsException = ExceptionEngine.evaluateGpsFreshness(
@@ -95,7 +113,7 @@ export class GPSService {
         }
 
         const activeTrip = await this.tripRepo.findActiveTripByBus(bus.id);
-        if (activeTrip) {
+        if (activeTrip && !isStale) {
           await this.journeyService.processEvent({
             id: crypto.randomUUID(),
             idempotencyKey: generateUuidV7(),
@@ -161,6 +179,14 @@ export class GPSService {
         );
         if (inside) {
           stopReachedId = stop.id;
+          const wasInside = previousLocation
+            ? await this.routeRepo.isPointWithinStopGeofence(
+                stop.id,
+                previousLocation.latitude,
+                previousLocation.longitude
+              )
+            : false;
+          if (wasInside) continue;
           // Emit BUS_REACHED_STOP event
           const stopEvent: JourneyEvent = {
             id: crypto.randomUUID(),

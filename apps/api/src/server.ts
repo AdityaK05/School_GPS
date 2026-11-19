@@ -293,8 +293,9 @@ export function createServer(services: AppServices = createServices()): http.Ser
       return sendJson(429, errorResponse('RATE_LIMIT_EXCEEDED', 'Too many requests. Rate limit exceeded, please retry shortly.'));
     }
 
+    let requestBody: Promise<any> | undefined;
     const readBody = async (): Promise<any> => {
-      return new Promise((resolve, reject) => {
+      requestBody ??= new Promise((resolve, reject) => {
         let body = '';
         req.on('data', (chunk) => (body += chunk));
         req.on('end', () => {
@@ -317,6 +318,7 @@ export function createServer(services: AppServices = createServices()): http.Ser
         });
         req.on('error', reject);
       });
+      return requestBody;
     };
 
     try {
@@ -344,6 +346,17 @@ export function createServer(services: AppServices = createServices()): http.Ser
 
       // --- TRACCAR TELEMATICS INGESTION (WEBHOOK / HTTP FORWARD) ---
       if (method === 'POST' && path === '/api/v1/gps/traccar') {
+        const configuredToken = process.env.GPS_INGEST_TOKEN;
+        if (!configuredToken) {
+          return sendJson(503, errorResponse('GPS_INGEST_NOT_CONFIGURED', 'GPS ingestion authentication is not configured'));
+        }
+        const suppliedToken = req.headers['x-gps-ingest-token'] ||
+          (typeof req.headers.authorization === 'string' ? req.headers.authorization.replace(/^Bearer\s+/i, '') : '');
+        const expected = Buffer.from(configuredToken);
+        const supplied = Buffer.from(Array.isArray(suppliedToken) ? suppliedToken[0] || '' : suppliedToken || '');
+        if (expected.length !== supplied.length || !crypto.timingSafeEqual(expected, supplied)) {
+          return sendJson(401, errorResponse('UNAUTHORIZED', 'Valid GPS ingestion token required'));
+        }
         const body = await readBody();
         const normalized = body.event || body.position ? TraccarAdapter.normalizeWebhook(body) : TraccarAdapter.normalizeForward(body);
         const result = await services.gpsService.ingestLocation(normalized);
@@ -351,6 +364,17 @@ export function createServer(services: AppServices = createServices()): http.Ser
       }
 
       if (method === 'POST' && path === '/api/v1/gps/forward') {
+        const configuredToken = process.env.GPS_INGEST_TOKEN;
+        if (!configuredToken) {
+          return sendJson(503, errorResponse('GPS_INGEST_NOT_CONFIGURED', 'GPS ingestion authentication is not configured'));
+        }
+        const suppliedToken = req.headers['x-gps-ingest-token'] ||
+          (typeof req.headers.authorization === 'string' ? req.headers.authorization.replace(/^Bearer\s+/i, '') : '');
+        const expected = Buffer.from(configuredToken);
+        const supplied = Buffer.from(Array.isArray(suppliedToken) ? suppliedToken[0] || '' : suppliedToken || '');
+        if (expected.length !== supplied.length || !crypto.timingSafeEqual(expected, supplied)) {
+          return sendJson(401, errorResponse('UNAUTHORIZED', 'Valid GPS ingestion token required'));
+        }
         const body = await readBody();
         const normalized = TraccarAdapter.normalizeForward(body);
         const result = await services.gpsService.ingestLocation(normalized);
@@ -403,35 +427,6 @@ export function createServer(services: AppServices = createServices()): http.Ser
         }));
       }
 
-      // --- CSV EXPORT ENDPOINT ---
-      if (method === 'GET' && path === '/api/v1/reports/export.csv') {
-        const schoolId = parsedUrl.searchParams.get('schoolId') || '11111111-1111-1111-1111-111111111111';
-        const type = parsedUrl.searchParams.get('type') || 'attendance';
-
-        res.setHeader('Content-Type', 'text/csv; charset=utf-8');
-        res.setHeader('Content-Disposition', `attachment; filename="aegis_${type}_report_${Date.now()}.csv"`);
-
-        let csvData = '';
-        if (type === 'attendance') {
-          csvData = 'StudentID,AdmissionNumber,Name,GradeSection,Status,Route,Stop,BoardedAt,ExitedAt\n';
-          const students = await services.container.studentRepo.findBySchool(schoolId);
-          for (const s of students) {
-            const asgn = await services.container.studentRepo.findAssignment(s.id);
-            csvData += `"${s.id}","${s.admissionNumber}","${s.firstName} ${s.lastName}","${s.className || ''}-${s.section || ''}","${s.status}","${asgn?.routeId || 'Unassigned'}","${asgn?.stopId || 'Unassigned'}","07:22 AM","07:54 AM"\n`;
-          }
-        } else {
-          csvData = 'BusID,FleetNumber,Registration,Status,Capacity,GPSDevice,AssignedRoute\n';
-          const buses = await services.container.busRepo.findBySchool(schoolId);
-          for (const b of buses) {
-            csvData += `"${b.id}","${b.fleetNumber}","${b.registrationNumber}","${b.status}",${b.capacity},"${b.activeGpsDeviceId || 'None'}","North Express"\n`;
-          }
-        }
-
-        res.writeHead(200);
-        res.end(csvData);
-        return;
-      }
-
       // =========================================================================
       // 2. Authentication Enforcement for Protected APIs
       // =========================================================================
@@ -442,6 +437,224 @@ export function createServer(services: AppServices = createServices()): http.Ser
         return sendJson(401, authResult.error);
       }
       const auth = authResult.context;
+
+      const isParentEndpoint = path.startsWith('/api/v1/parent/');
+      if (isParentEndpoint) {
+        RbacGuard.requireRole(auth, ['PARENT']);
+      } else if (auth.role === 'PARENT') {
+        throw new Error('FORBIDDEN: Parent accounts may only access parent portal endpoints');
+      } else if (auth.role === 'DRIVER' || auth.role === 'ATTENDANT') {
+        const isOperationalEndpoint =
+          path === '/api/v1/rfid/scan' ||
+          path === '/api/v1/journey-events' ||
+          path === '/api/v1/journey-events/batch' ||
+          /^\/api\/v1\/trips\/[^/]+\/manifest$/.test(path);
+        if (!isOperationalEndpoint) {
+          throw new Error('FORBIDDEN: Operational staff may only access assigned trip workflows');
+        }
+      } else if (!['SCHOOL_ADMIN', 'TRANSPORT_MANAGER', 'SUPER_ADMIN'].includes(auth.role)) {
+        throw new Error('FORBIDDEN: Unsupported role');
+      }
+
+      const requireSchool = (schoolId: string | undefined | null): void => {
+        if (!schoolId) throw new Error('TENANT_ACCESS_DENIED: Resource has no school association');
+        RbacGuard.requireSchoolAccess(auth, schoolId);
+      };
+      const requireStudent = async (studentId: string): Promise<void> => {
+        const student = await services.container.studentRepo.findById(studentId);
+        if (!student) throw new Error('TENANT_ACCESS_DENIED: Student is not accessible');
+        requireSchool(student.schoolId);
+        if (auth.role === 'PARENT') {
+          const children = await services.container.studentRepo.findStudentsByGuardianUser(auth.userId);
+          if (!children.some((child) => child.id === studentId)) {
+            throw new Error('FORBIDDEN: Parent is not linked to this student');
+          }
+        }
+      };
+      const requireTrip = async (tripId: string): Promise<void> => {
+        const trip = await services.container.tripRepo.findById(tripId);
+        if (!trip) throw new Error('TENANT_ACCESS_DENIED: Trip is not accessible');
+        requireSchool(trip.schoolId);
+      };
+
+      const requestData =
+        method === 'POST' || method === 'PATCH' ? await readBody() : {};
+      if (requestData && typeof requestData === 'object') {
+        if (typeof requestData.schoolId === 'string') requireSchool(requestData.schoolId);
+        if (typeof requestData.tripId === 'string') await requireTrip(requestData.tripId);
+        if (typeof requestData.studentId === 'string') await requireStudent(requestData.studentId);
+        if (typeof requestData.busId === 'string') {
+          const bus = await services.container.busRepo.findById(requestData.busId);
+          requireSchool(bus?.schoolId);
+          if (typeof requestData.tripId === 'string') {
+            const trip = await services.container.tripRepo.findById(requestData.tripId);
+            if (trip?.busId !== requestData.busId) {
+              throw new Error('FORBIDDEN: Bus does not match the authorized trip');
+            }
+          }
+        }
+        if (typeof requestData.routeId === 'string') {
+          const route = await services.container.routeRepo.findRouteById(requestData.routeId);
+          requireSchool(route?.schoolId);
+        }
+        if (typeof requestData.stopId === 'string') {
+          const stop = await services.container.routeRepo.findStopById(requestData.stopId);
+          const route = stop ? await services.container.routeRepo.findRouteById(stop.routeId) : null;
+          requireSchool(route?.schoolId);
+        }
+        if (Array.isArray(requestData.events)) {
+          for (const event of requestData.events) {
+            if (typeof event?.tripId === 'string') await requireTrip(event.tripId);
+            if (typeof event?.studentId === 'string') await requireStudent(event.studentId);
+            if (typeof event?.busId === 'string') {
+              const bus = await services.container.busRepo.findById(event.busId);
+              requireSchool(bus?.schoolId);
+              if (typeof event.tripId === 'string') {
+                const trip = await services.container.tripRepo.findById(event.tripId);
+                if (trip?.busId !== event.busId) {
+                  throw new Error('FORBIDDEN: Event bus does not match the authorized trip');
+                }
+              }
+            }
+          }
+        }
+      }
+
+      const resourcePath = path.match(
+        /^\/api\/v1\/(buses|routes|trips|students|exceptions|staff|schools)\/([^/]+)(?:\/|$)/
+      );
+      if (resourcePath) {
+        const [, resource, resourceId] = resourcePath;
+        if (resource === 'buses') {
+          const bus = await services.container.busRepo.findById(resourceId);
+          requireSchool(bus?.schoolId);
+        } else if (resource === 'routes') {
+          const route = await services.container.routeRepo.findRouteById(resourceId);
+          requireSchool(route?.schoolId);
+        } else if (resource === 'trips') {
+          await requireTrip(resourceId);
+        } else if (resource === 'students') {
+          await requireStudent(resourceId);
+        } else if (resource === 'exceptions') {
+          const exception = await services.container.exceptionRepo.findById(resourceId);
+          requireSchool(exception?.schoolId);
+        } else if (resource === 'staff') {
+          const staff = await services.container.staffRepo.findById(resourceId);
+          requireSchool(staff?.schoolId);
+        } else if (resource === 'schools') {
+          RbacGuard.requireSchoolAccess(auth, resourceId);
+        }
+      }
+
+      const devicePath = path.match(/^\/api\/v1\/devices\/(gps|rfid)\/([^/]+)(?:\/|$)/);
+      if (devicePath) {
+        const [, kind, deviceId] = devicePath;
+        if (!['assign', 'replace', 'decommission'].includes(deviceId)) {
+          const device = kind === 'gps'
+            ? await services.container.deviceRepo.findGpsById(deviceId)
+            : await services.container.deviceRepo.findRfidById(deviceId);
+          requireSchool(device?.schoolId);
+        }
+      }
+
+      const stopPath = path.match(/^\/api\/v1\/stops\/([^/]+)(?:\/|$)/);
+      if (stopPath) {
+        const stop = await services.container.routeRepo.findStopById(stopPath[1]);
+        const route = stop ? await services.container.routeRepo.findRouteById(stop.routeId) : null;
+        requireSchool(route?.schoolId);
+      }
+
+      const parentStudentPath = path.match(/^\/api\/v1\/parent\/children\/([^/]+)(?:\/|$)/);
+      if (parentStudentPath) await requireStudent(parentStudentPath[1]);
+
+      if (auth.role === 'DRIVER' || auth.role === 'ATTENDANT') {
+        const request = method === 'POST' || method === 'PATCH' ? await readBody() : {};
+        const tripIds = new Set<string>();
+        if (typeof request.tripId === 'string') tripIds.add(request.tripId);
+        const events = Array.isArray(request.events) ? request.events : [];
+        for (const event of events) {
+          if (typeof event.tripId === 'string') tripIds.add(event.tripId);
+        }
+        const manifestPath = path.match(/^\/api\/v1\/trips\/([^/]+)\/manifest$/);
+        if (manifestPath) tripIds.add(manifestPath[1]);
+
+        const readerBusId: string | undefined =
+          path === '/api/v1/rfid/scan' && typeof request.readerHardwareId === 'string'
+            ? (await services.container.deviceRepo.findRfidByReaderId(request.readerHardwareId))?.busId
+            : undefined;
+        if (path === '/api/v1/rfid/scan' && typeof request.readerHardwareId === 'string') {
+          if (!readerBusId) throw new Error('FORBIDDEN: RFID reader is not registered');
+        }
+        const tripBusIds = new Set<string>();
+        for (const tripId of tripIds) {
+          const trip = await services.container.tripRepo.findById(tripId);
+          if (!trip) throw new Error('FORBIDDEN: Trip is not assigned to this staff member');
+          requireSchool(trip.schoolId);
+          if (readerBusId && trip.busId !== readerBusId) {
+            throw new Error('FORBIDDEN: RFID reader bus does not match the trip');
+          }
+          tripBusIds.add(trip.busId);
+        }
+        if (tripBusIds.size === 0) throw new Error('FORBIDDEN: An assigned trip is required');
+        const staff = await services.container.staffRepo.findBySchool(auth.schoolId || '');
+        for (const busId of tripBusIds) {
+          if (!staff.some((person) => person.userId === auth.userId && person.assignedBusId === busId)) {
+            throw new Error('FORBIDDEN: Staff member is not assigned to a trip bus');
+          }
+        }
+      }
+
+      // CSV exports are tenant-scoped and must never trust a client-supplied tenant id.
+      if (method === 'GET' && path === '/api/v1/reports/export.csv') {
+        const requestedSchoolId = parsedUrl.searchParams.get('schoolId');
+        const schoolId = requestedSchoolId || auth.schoolId;
+        if (!schoolId) throw new Error('TENANT_ACCESS_DENIED: A school must be selected for export');
+        requireSchool(schoolId);
+        const type = parsedUrl.searchParams.get('type') || 'attendance';
+        const csvValue = (value: string | number | undefined): string => {
+          const text = String(value ?? '');
+          const safe = /^[=+\-@\t\r]/.test(text) ? `'${text}` : text;
+          return `"${safe.replaceAll('"', '""')}"`;
+        };
+        let csvData = '';
+        if (type === 'attendance') {
+          csvData = 'StudentID,AdmissionNumber,Name,GradeSection,Status,Route,Stop\n';
+          const students = await services.container.studentRepo.findBySchool(schoolId);
+          for (const student of students) {
+            const assignment = await services.container.studentRepo.findAssignment(student.id);
+            csvData += [
+              student.id,
+              student.admissionNumber,
+              `${student.firstName} ${student.lastName}`,
+              `${student.className || ''}-${student.section || ''}`,
+              student.status,
+              assignment?.routeId || 'Unassigned',
+              assignment?.stopId || 'Unassigned',
+            ].map(csvValue).join(',') + '\n';
+          }
+        } else if (type === 'fleet') {
+          csvData = 'BusID,FleetNumber,Registration,Status,Capacity,GPSDevice\n';
+          const buses = await services.container.busRepo.findBySchool(schoolId);
+          for (const bus of buses) {
+            csvData += [
+              bus.id,
+              bus.fleetNumber,
+              bus.registrationNumber,
+              bus.status,
+              bus.capacity,
+              bus.activeGpsDeviceId || 'None',
+            ].map(csvValue).join(',') + '\n';
+          }
+        } else {
+          return sendJson(400, errorResponse('VALIDATION_ERROR', 'Unsupported report type'));
+        }
+        res.writeHead(200, {
+          'Content-Type': 'text/csv; charset=utf-8',
+          'Content-Disposition': `attachment; filename="aegis_${type}_report_${Date.now()}.csv"`,
+        });
+        res.end(csvData);
+        return;
+      }
 
       // 3. User Identity & Me
       if (method === 'GET' && path === '/api/v1/auth/me') {
@@ -467,7 +680,16 @@ export function createServer(services: AppServices = createServices()): http.Ser
           return sendJson(403, errorResponse('FORBIDDEN', 'User has no school context'));
         }
         const buses = await services.container.busRepo.findBySchool(auth.schoolId || '');
-        return sendJson(200, successResponse(buses));
+        const enriched = await Promise.all(
+          buses.map(async (bus) => {
+            const location = await services.container.gpsRepo.getLatestLocationByBus(bus.id);
+            return {
+              ...bus,
+              latestLocation: location?.schoolId === bus.schoolId ? location : null,
+            };
+          })
+        );
+        return sendJson(200, successResponse(enriched));
       }
 
       if (method === 'POST' && path === '/api/v1/buses') {
@@ -698,15 +920,74 @@ export function createServer(services: AppServices = createServices()): http.Ser
             const students = await services.container.tripRepo.findTripStudents(t.id);
             return {
               ...t,
-              busFleetNumber: bus?.fleetNumber || 'BUS-01',
-              routeName: route?.name || 'Route',
+              busFleetNumber: bus?.fleetNumber || 'Unassigned bus',
+              routeName: route?.name || 'Unassigned route',
               totalStudents: students.length,
-              boardedCount: students.filter((s) => s.isBoarded).length,
-              exitedCount: students.filter((s) => s.isExited).length,
+              boardedCount: students.filter((s) => s.boardingStatus === 'BOARDED').length,
+              exitedCount: students.filter((s) => s.exitStatus === 'EXITED').length,
             };
           })
         );
         return sendJson(200, successResponse(enriched));
+      }
+
+      if (method === 'GET' && path === '/api/v1/journeys') {
+        const requestedSchoolId = parsedUrl.searchParams.get('schoolId');
+        if (requestedSchoolId && auth.schoolId && requestedSchoolId !== auth.schoolId) {
+          requireSchool(requestedSchoolId);
+        }
+        const schoolId = auth.schoolId || requestedSchoolId || '';
+        requireSchool(schoolId);
+        const date = parsedUrl.searchParams.get('date') || new Date().toISOString().split('T')[0];
+        const trips = await services.container.tripRepo.findBySchoolAndDate(schoolId, date);
+        const journeys: Array<Record<string, unknown>> = [];
+        for (const trip of trips) {
+          const [bus, route, manifest] = await Promise.all([
+            services.container.busRepo.findById(trip.busId),
+            services.container.routeRepo.findRouteById(trip.routeId),
+            services.container.tripRepo.findTripStudents(trip.id),
+          ]);
+          if (!bus || bus.schoolId !== schoolId || !route || route.schoolId !== schoolId) {
+            throw new Error('TENANT_ACCESS_DENIED: Trip references resources outside its school');
+          }
+          const latestLocation = await services.container.gpsRepo.getLatestLocationByBus(bus.id);
+          const location = latestLocation?.schoolId === schoolId ? latestLocation : null;
+          for (const entry of manifest) {
+            const student = await services.container.studentRepo.findById(entry.studentId);
+            if (!student || student.schoolId !== schoolId) continue;
+            const journeyState = await services.container.journeyRepo.getStudentJourneyState(student.id, trip.id);
+            journeys.push({
+              id: `${trip.id}:${student.id}`,
+              tripId: trip.id,
+              student: {
+                firstName: student.firstName,
+                lastName: student.lastName,
+                admissionNumber: student.admissionNumber,
+                className: student.className,
+                section: student.section,
+              },
+              bus: {
+                fleetNumber: bus.fleetNumber,
+                registrationNumber: bus.registrationNumber,
+              },
+              route: { name: route.name },
+              state: journeyState?.state || 'EXPECTED',
+              boardingStatus: entry.boardingStatus || 'PENDING',
+              exitStatus: entry.exitStatus || 'PENDING',
+              boardedAt: entry.actualBoardingTimestamp,
+              exitedAt: entry.actualExitTimestamp,
+              location: location
+                ? {
+                    latitude: location.latitude,
+                    longitude: location.longitude,
+                    recordedAt: location.recordedAt,
+                  }
+                : null,
+              tripStatus: trip.status,
+            });
+          }
+        }
+        return sendJson(200, successResponse(journeys));
       }
 
       if (method === 'POST' && path === '/api/v1/trips') {
@@ -841,52 +1122,42 @@ export function createServer(services: AppServices = createServices()): http.Ser
         const student = await services.container.studentRepo.findByAdmissionNumber(auth.schoolId!, body.admissionNumber);
         if (!student) return sendJson(404, errorResponse('NOT_FOUND', 'Student admission number not found'));
 
-        const inviteCode = `AEGIS-${Math.floor(1000 + Math.random() * 9000)}`;
-        if ((services.container as any).db?.parentInvitationCodes) {
-          (services.container as any).db.parentInvitationCodes.set(inviteCode, {
-            admissionNumber: student.admissionNumber,
-            studentId: student.id,
-            schoolId: student.schoolId,
-          });
-        }
+        const inviteCode = crypto.randomBytes(24).toString('hex').toUpperCase();
+        await services.container.studentRepo.createParentInvitationCode({
+          code: inviteCode,
+          studentId: student.id,
+          schoolId: student.schoolId,
+          admissionNumber: student.admissionNumber,
+        });
         return sendJson(201, successResponse({ studentId: student.id, admissionNumber: student.admissionNumber, inviteCode }));
       }
 
       if (method === 'POST' && path === '/api/v1/parent/link-student') {
+        RbacGuard.requireRole(auth, ['PARENT']);
         const body = LinkStudentSchema.parse(await readBody());
         const parentId = auth.userId;
-
-        // Check verification code
         const code = body.invitationCode.trim().toUpperCase();
-        let validClaim = false;
-        let studentId = '';
-
-        if (code === 'AEGIS-9912' || code === 'AEGIS-9913' || code.startsWith('AEGIS-')) {
-          const student = await services.container.studentRepo.findByAdmissionNumber(
-            auth.schoolId || '11111111-1111-1111-1111-111111111111',
-            body.admissionNumber
-          );
-          if (student) {
-            validClaim = true;
-            studentId = student.id;
-          }
-        }
-
-        if (!validClaim || !studentId) {
+        const claim = await services.container.studentRepo.claimParentInvitationCode(
+          code,
+          body.admissionNumber,
+          parentId,
+          auth.schoolId
+        );
+        if (!claim) {
           return sendJson(400, errorResponse('INVALID_INVITATION', 'Invalid student admission number or security invitation code.'));
         }
 
         const link = await services.container.studentRepo.linkGuardian({
-          id: `g_${Date.now()}`,
+          id: crypto.randomUUID(),
           userId: parentId,
-          studentId,
+          studentId: claim.studentId,
           relationship: body.relationship as any,
           isEmergencyContact: true,
           canPickup: true,
           createdAt: new Date().toISOString(),
         });
 
-        return sendJson(200, successResponse({ linked: true, studentId, link }));
+        return sendJson(200, successResponse({ linked: true, studentId: claim.studentId, link }));
       }
 
       // --- STAFF (DRIVERS & ATTENDANTS) MANAGEMENT ---
@@ -956,6 +1227,25 @@ export function createServer(services: AppServices = createServices()): http.Ser
 
         for (const evt of body.events) {
           try {
+            const offlineScan = evt.metadata?.offlineRfidScan === true;
+            if (offlineScan) {
+              const cardId = evt.metadata?.cardId;
+              const readerHardwareId = evt.metadata?.readerHardwareId;
+              if (typeof cardId !== 'string' || typeof readerHardwareId !== 'string') {
+                throw new Error('Offline RFID event is missing its card or reader identity');
+              }
+              await services.rfidService.processScan({
+                cardId,
+                readerHardwareId,
+                tripId: evt.tripId,
+                timestamp: evt.eventTimestamp,
+                idempotencyKey: evt.idempotencyKey,
+                latitude: evt.latitude,
+                longitude: evt.longitude,
+              });
+              accepted.push(evt.idempotencyKey);
+              continue;
+            }
             let busId = evt.busId;
             if (!busId) {
               const trip = await services.container.tripRepo.findById(evt.tripId);
@@ -1144,6 +1434,16 @@ export function createServer(services: AppServices = createServices()): http.Ser
         const exceptions = await services.container.exceptionRepo.findBySchool(schoolId, 'OPEN');
         const trips = await services.container.tripRepo.findBySchoolAndDate(schoolId, new Date().toISOString().split('T')[0]);
         const activeTrips = trips.filter((t) => t.status === 'IN_PROGRESS' || t.status === 'STARTED');
+        const activeManifests = await Promise.all(
+          activeTrips.map((trip) => services.container.tripRepo.findTripStudents(trip.id))
+        );
+        const manifestEntries = activeManifests.flat();
+        const studentsOnboard = manifestEntries.filter(
+          (entry) => entry.boardingStatus === 'BOARDED' && entry.exitStatus !== 'EXITED'
+        ).length;
+        const accountedStudents = manifestEntries.filter(
+          (entry) => entry.boardingStatus === 'BOARDED' || entry.exitStatus === 'EXITED'
+        ).length;
 
         let gpsOnlineCount = 0;
         let gpsStaleCount = 0;
@@ -1172,7 +1472,9 @@ export function createServer(services: AppServices = createServices()): http.Ser
             delayedBuses: 0,
             gpsDevicesOffline: gpsOfflineCount,
             totalStudents: students.length,
-            studentsOnboard: 2, // Actively onboard based on live demo journeys
+            studentsOnboard,
+            accountedStudents,
+            manifestStudents: manifestEntries.length,
             activeJourneys: activeTrips.length,
             openExceptions: exceptions.length,
             recentIncidents: exceptions.slice(0, 5),
@@ -1186,11 +1488,7 @@ export function createServer(services: AppServices = createServices()): http.Ser
       // 5. Parent / Guardian Portal Endpoints
       // =========================================================================
       if (method === 'GET' && path === '/api/v1/parent/children') {
-        let children = await services.container.studentRepo.findStudentsByGuardianUser(auth.userId);
-        if (children.length === 0 && auth.schoolId) {
-          // If no specific guardian link yet, pull school children for demo/preview
-          children = await services.container.studentRepo.findBySchool(auth.schoolId);
-        }
+        const children = await services.container.studentRepo.findStudentsByGuardianUser(auth.userId);
 
         const enriched = await Promise.all(
           children.map(async (child) => {
@@ -1343,6 +1641,10 @@ export function createServer(services: AppServices = createServices()): http.Ser
 
       if (method === 'PATCH' && path.match(/^\/api\/v1\/parent\/notifications\/[^/]+\/read$/)) {
         const notifId = path.split('/')[5];
+        const ownedNotifications = await services.container.notificationRepo.findByUser(auth.userId);
+        if (!ownedNotifications.some((notification) => notification.id === notifId)) {
+          return sendJson(404, errorResponse('NOT_FOUND', 'Notification not found'));
+        }
         const updated = await services.container.notificationRepo.update(notifId, {
           readAt: new Date().toISOString(),
         });

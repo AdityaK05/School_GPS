@@ -784,6 +784,39 @@ export class SupabaseStudentRepository implements IStudentRepository {
     return (students || []).map(this.mapStudentRow);
   }
 
+  async createParentInvitationCode(input: {
+    code: string;
+    studentId: string;
+    schoolId: string;
+    admissionNumber: string;
+  }): Promise<void> {
+    const { error } = await this.client.from('parent_invitation_codes').insert({
+      code: input.code,
+      school_id: input.schoolId,
+      student_id: input.studentId,
+      admission_number: input.admissionNumber,
+    });
+    if (error) throw new Error(`Supabase error createParentInvitationCode: ${error.message}`);
+  }
+
+  async claimParentInvitationCode(
+    code: string,
+    admissionNumber: string,
+    userId: string,
+    schoolId?: string
+  ): Promise<{ studentId: string; schoolId: string } | null> {
+    let query = this.client
+      .from('parent_invitation_codes')
+      .update({ is_claimed: true, claimed_by_user_id: userId, claimed_at: new Date().toISOString() })
+      .eq('code', code)
+      .eq('admission_number', admissionNumber)
+      .eq('is_claimed', false);
+    if (schoolId) query = query.eq('school_id', schoolId);
+    const { data, error } = await query.select('student_id, school_id').maybeSingle();
+    if (error) throw new Error(`Supabase error claimParentInvitationCode: ${error.message}`);
+    return data ? { studentId: data.student_id, schoolId: data.school_id } : null;
+  }
+
   async deleteStudent(id: string): Promise<void> {
     const { error } = await this.client.from('students').delete().eq('id', id);
     if (error) throw new Error(`Supabase error deleteStudent: ${error.message}`);

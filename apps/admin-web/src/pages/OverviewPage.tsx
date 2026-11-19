@@ -5,6 +5,7 @@ import { radii, shadows } from '../theme/design-system';
 import { SafetyPulse, StatusBadge } from '../components/ui/SharedComponents';
 import { InteractiveMap, MapMarker } from '../components/InteractiveMap';
 import { ApiClient } from '@school-transport-platform/client-sdk';
+import { Bus, GPSLocation } from '@school-transport-platform/shared-types';
 import {
   UsersRound,
   Bell,
@@ -28,73 +29,68 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({ apiClient }) => {
   const { colors } = useTheme();
 
   const [metrics, setMetrics] = useState({
-    totalStudents: 8,
-    accountedStudents: 7,
-    activeBuses: 3,
-    totalBuses: 3,
-    criticalIssues: 1,
-    studentsOnboard: 1,
+    totalStudents: 0,
+    accountedStudents: 0,
+    activeBuses: 0,
+    totalBuses: 0,
+    criticalIssues: 0,
+    studentsOnboard: 0,
   });
 
-  // Human-readable Activity Stream (Section 16 & 17: NO DEVELOPER JARGON)
-  const [recentEvents, setRecentEvents] = useState<any[]>([
-    {
-      id: '1',
-      time: '08:31 AM',
-      text: 'Student exit not recorded',
-      detail: 'Aarav Sharma · Bus 12 · Sector 62 Metro',
-      type: 'attention',
-    },
-    {
-      id: '2',
-      time: '08:24 AM',
-      text: 'Bus 12 reached Fortis stop area',
-      detail: 'Bus 12 on designated morning corridor',
-      type: 'transit',
-    },
-    {
-      id: '3',
-      time: '08:17 AM',
-      text: 'Aarav Sharma boarded',
-      detail: 'Bus 12 · Sector 62 Metro Gate #2',
-      type: 'boarded',
-    },
-    {
-      id: '4',
-      time: '08:05 AM',
-      text: 'Diya Sharma boarded',
-      detail: 'Bus 12 · Shipra Sun City Gate #4',
-      type: 'boarded',
-    },
-  ]);
+  const [recentEvents, setRecentEvents] = useState<Array<{
+    id: string;
+    type: string;
+    time: string;
+    text: string;
+    detail: string;
+  }>>([]);
 
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [mapMarkers, setMapMarkers] = useState<MapMarker[]>([]);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
         setIsLoading(true);
-        const [overview, buses, students, exceptions] = await Promise.all([
-          apiClient.getDashboardOverview().catch(() => null),
-          apiClient.listBuses().catch(() => []),
-          apiClient.getStudents().catch(() => []),
-          apiClient.getExceptions().catch(() => []),
+        setLoadError(null);
+        const [overview, buses] = await Promise.all([
+          apiClient.getDashboardOverview(),
+          apiClient.listBuses(),
         ]);
-
-        if (overview) {
-          const openExceptions = exceptions.filter((e) => e.status === 'OPEN').length;
-          const totalS = students.length || 8;
-          setMetrics({
-            totalStudents: totalS,
-            accountedStudents: openExceptions > 0 ? totalS - openExceptions : totalS,
-            activeBuses: overview.activeBuses || (buses.length || 3),
-            totalBuses: buses.length || 3,
-            criticalIssues: openExceptions > 0 ? openExceptions : 1, // Keep demo accountability alert active
-            studentsOnboard: (overview as any).studentsOnboard || 1,
-          });
-        }
+        const busesWithLocation = buses as Array<Bus & { latestLocation?: GPSLocation | null }>;
+        setMapMarkers(
+          busesWithLocation.flatMap((bus) => {
+            const location = bus.latestLocation;
+            if (!location || location.schoolId !== bus.schoolId) return [];
+            const ageSeconds = (Date.now() - new Date(location.recordedAt).getTime()) / 1000;
+            return [{
+              id: bus.id,
+              label: bus.fleetNumber || bus.registrationNumber || 'Bus',
+              latitude: location.latitude,
+              longitude: location.longitude,
+              type: 'bus' as const,
+              status: Number.isFinite(ageSeconds) && ageSeconds <= 60 ? 'GPS update is fresh' : 'GPS update is stale',
+            }];
+          })
+        );
+        setMetrics({
+          totalStudents: overview.manifestStudents ?? 0,
+          accountedStudents: overview.accountedStudents ?? 0,
+          activeBuses: overview.activeBuses ?? 0,
+          totalBuses: buses.length,
+          criticalIssues: overview.openExceptions ?? 0,
+          studentsOnboard: overview.studentsOnboard ?? 0,
+        });
+        setRecentEvents(overview.recentIncidents.map((exception) => ({
+          id: exception.id,
+          type: exception.severity === 'CRITICAL' ? 'attention' : 'transit',
+          time: new Date(exception.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          text: exception.type.replaceAll('_', ' '),
+          detail: exception.description || 'Review the recorded evidence for this exception.',
+        })));
       } catch (err) {
-        // Safe fallback
+        setLoadError(err instanceof Error ? err.message : 'Dashboard data could not be loaded.');
       } finally {
         setIsLoading(false);
       }
@@ -102,17 +98,6 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({ apiClient }) => {
 
     fetchData();
   }, [apiClient]);
-
-  const mapMarkers: MapMarker[] = [
-    {
-      id: 'bus_12',
-      label: 'Bus 12 (UP-16-BT-9912)',
-      latitude: 28.6320,
-      longitude: 77.3680,
-      type: 'bus',
-      status: 'On route',
-    },
-  ];
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', maxWidth: '1200px' }}>
@@ -128,7 +113,7 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({ apiClient }) => {
               letterSpacing: '0.08em',
             }}
           >
-            Oakridge International School &bull; Transport Management
+            Transport Management
           </div>
           <h1
             style={{
@@ -139,7 +124,7 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({ apiClient }) => {
               letterSpacing: '-0.02em',
             }}
           >
-            Morning Transport Safety
+            Transport Safety Overview
           </h1>
           <p style={{ fontSize: '13px', color: colors.textSecondary, margin: 0 }}>
             Know where every student is during their journey.
@@ -148,11 +133,7 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({ apiClient }) => {
 
         {/* Live Status Pill & Quick Corridor Action */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <StatusBadge
-            type="success"
-            icon={<Check size={12} strokeWidth={2.4} />}
-            label="Live Active"
-          />
+          <StatusBadge type="neutral" label="Operational overview" />
           <button
             onClick={() => navigate('/journeys')}
             style={{
@@ -174,6 +155,12 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({ apiClient }) => {
             <ArrowRight size={14} strokeWidth={2} />
           </button>
         </div>
+
+        {loadError && (
+          <div role="alert" style={{ padding: 14, borderRadius: radii.md, border: `1px solid ${colors.dangerBorder}`, background: colors.dangerLight, color: colors.danger }}>
+            Dashboard data is unavailable: {loadError}
+          </div>
+        )}
       </div>
 
       {/* 2. Primary Hero: Student Accountability Pulse (Sections 18, 19, 20) */}
@@ -183,8 +170,6 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({ apiClient }) => {
         activeBuses={metrics.activeBuses}
         totalBuses={metrics.totalBuses}
         criticalIssues={metrics.criticalIssues}
-        attentionStudentName="Aarav Sharma"
-        attentionDetail="Bus 12 · Sector 62 Metro · Student exit not recorded"
         onReviewAttention={() => navigate('/exceptions')}
       />
 
@@ -248,9 +233,6 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({ apiClient }) => {
             <InteractiveMap
               markers={mapMarkers}
               height="340px"
-              busSpeed={38}
-              busLive={true}
-              lastUpdatedText="Updated 32 sec ago"
             />
           </div>
         </div>
@@ -423,11 +405,11 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({ apiClient }) => {
               Today's Journey Activity
             </h3>
             <div style={{ fontSize: '12px', color: colors.textSecondary, marginTop: '2px' }}>
-              Live student and bus activity
+              Recent safety exceptions
             </div>
           </div>
           <button
-            onClick={() => navigate('/audit')}
+            onClick={() => navigate('/exceptions')}
             style={{
               fontSize: '12px',
               fontWeight: 600,
@@ -440,13 +422,19 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({ apiClient }) => {
               gap: '4px',
             }}
           >
-            <span>Safety Ledger</span>
+            <span>View exceptions</span>
             <ArrowRight size={13} strokeWidth={2} />
           </button>
         </div>
 
         {/* Human-Readable Event Feed */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          {isLoading && <p role="status" style={{ color: colors.textSecondary }}>Loading operational data…</p>}
+          {!isLoading && !loadError && recentEvents.length === 0 && (
+            <p style={{ color: colors.textSecondary, fontSize: 12 }}>
+              No safety exceptions were returned for this school.
+            </p>
+          )}
           {recentEvents.map((evt) => {
             const isAttention = evt.type === 'attention';
             return (

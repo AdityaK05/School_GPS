@@ -69,7 +69,10 @@ export class MemoryDatabase {
   public maintenance = new Map<string, BusMaintenanceRecord>();
   public staff = new Map<string, StaffProfile>();
   public outbox = new Map<string, NotificationOutboxItem>();
-  public parentInvitationCodes = new Map<string, { admissionNumber: string; studentId: string; schoolId: string }>();
+  public parentInvitationCodes = new Map<
+    string,
+    { admissionNumber: string; studentId: string; schoolId: string; claimedByUserId?: string }
+  >();
 
   constructor() {
     this.seedDefaultData();
@@ -792,6 +795,36 @@ export class MemoryStudentRepository implements IStudentRepository {
   }
   async unlinkGuardian(guardianId: string): Promise<void> {
     this.db.guardians.delete(guardianId);
+  }
+  async createParentInvitationCode(input: {
+    code: string;
+    studentId: string;
+    schoolId: string;
+    admissionNumber: string;
+  }): Promise<void> {
+    this.db.parentInvitationCodes.set(input.code, {
+      admissionNumber: input.admissionNumber,
+      studentId: input.studentId,
+      schoolId: input.schoolId,
+    });
+  }
+  async claimParentInvitationCode(
+    code: string,
+    admissionNumber: string,
+    userId: string,
+    schoolId?: string
+  ): Promise<{ studentId: string; schoolId: string } | null> {
+    const invitation = this.db.parentInvitationCodes.get(code);
+    if (
+      !invitation ||
+      invitation.admissionNumber !== admissionNumber ||
+      invitation.claimedByUserId ||
+      (schoolId && invitation.schoolId !== schoolId)
+    ) {
+      return null;
+    }
+    this.db.parentInvitationCodes.set(code, { ...invitation, claimedByUserId: userId });
+    return { studentId: invitation.studentId, schoolId: invitation.schoolId };
   }
 }
 

@@ -239,10 +239,9 @@ describe('Groq AI Parent Transport Assistant — Safety & Isolation Tests', () =
       }),
     });
 
-    expect(res.status).toBe(200);
+    expect(res.status).toBe(403);
     const json = await res.json();
-    // Must contain access denial or error from tool execution
-    expect(json.data.response.toLowerCase()).toContain('authorized');
+    expect(['FORBIDDEN', 'TENANT_ACCESS_DENIED']).toContain(json.error.code);
   });
 
   it('3. Deterministic ETA calculation produces accurate arrival windows', async () => {

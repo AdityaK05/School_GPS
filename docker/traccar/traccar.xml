@@ -11,7 +11,7 @@
     <entry key='database.driver'>org.postgresql.Driver</entry>
     <entry key='database.url'>jdbc:postgresql://traccar-db:5432/traccar</entry>
     <entry key='database.user'>traccar</entry>
-    <entry key='database.password'>traccar_secret_pass</entry>
+    <entry key='database.password'></entry>
 
     <!-- Location Ingestion & Device Protocols -->
     <!-- OsmAnd (Port 5055) - Standard for mobile & IoT gateways -->
@@ -25,8 +25,7 @@
 
     <!-- Real-time Telematics Forwarding to Aegis API Ingestion Service -->
     <!-- Method A: Direct Position Forwarding (Query Parameters) -->
-    <entry key='forward.enable'>true</entry>
-    <entry key='forward.url'>http://aegis-api:3000/api/v1/gps/forward?id={uniqueId}&amp;lat={latitude}&amp;lon={longitude}&amp;speed={speed}&amp;bearing={course}&amp;altitude={altitude}&amp;timestamp={fixTime}&amp;valid={valid}</entry>
+    <entry key='forward.enable'>false</entry>
 
     <!-- Method B: Webhook Event & Position Forwarding (JSON Payload) -->
     <entry key='event.forward.enable'>true</entry>

@@ -101,6 +101,18 @@ export interface IStudentRepository {
   findStudentsByGuardianUser(userId: string): Promise<Student[]>;
   linkGuardian(guardian: Guardian): Promise<Guardian>;
   unlinkGuardian(guardianId: string): Promise<void>;
+  createParentInvitationCode(input: {
+    code: string;
+    studentId: string;
+    schoolId: string;
+    admissionNumber: string;
+  }): Promise<void>;
+  claimParentInvitationCode(
+    code: string,
+    admissionNumber: string,
+    userId: string,
+    schoolId?: string
+  ): Promise<{ studentId: string; schoolId: string } | null>;
 }
 
 export interface IJourneyRepository {

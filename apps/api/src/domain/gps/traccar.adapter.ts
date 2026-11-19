@@ -1,5 +1,5 @@
 import { NormalizedGPSLocation } from './gps.adapter';
-import { TraccarForwardSchema } from '@school-transport-platform/validation';
+import { IngestGpsLocationSchema, TraccarForwardSchema } from '@school-transport-platform/validation';
 
 export interface TraccarNormalizationResult {
   normalized: NormalizedGPSLocation;
@@ -36,17 +36,16 @@ export class TraccarAdapter {
       speedKmh = Math.round(Number(parsed.speed) * 1.852 * 10) / 10;
     }
 
-    const recordedAt = parsed.fixTime || parsed.deviceTime || new Date().toISOString();
+    const recordedAt = parsed.fixTime || parsed.deviceTime;
 
-    return {
+    return IngestGpsLocationSchema.parse({
       deviceId,
       latitude: parsed.latitude,
       longitude: parsed.longitude,
       speed: speedKmh,
-      heading: parsed.course !== undefined ? Math.round(parsed.course) : undefined,
-      accuracy: parsed.altitude !== undefined ? Math.round(parsed.altitude) : undefined,
-      recordedAt,
-    };
+      heading: parsed.course !== undefined ? parsed.course : undefined,
+      recordedAt: recordedAt || new Date().toISOString(),
+    });
   }
 
   /**
@@ -58,12 +57,13 @@ export class TraccarAdapter {
    * }
    */
   public static normalizeWebhook(payload: any): NormalizedGPSLocation {
-    if (!payload || typeof payload !== 'object') {
+    if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
       throw new Error('Invalid Traccar webhook payload');
     }
 
-    const device = payload.device || {};
-    const position = payload.position || {};
+    const body = payload as Record<string, any>;
+    const device = body.device || {};
+    const position = body.position || {};
 
     const deviceId = String(device.uniqueId || device.id || position.deviceId || '');
     if (!deviceId) {
@@ -79,16 +79,16 @@ export class TraccarAdapter {
       speedKmh = Math.round(Number(position.speed) * 1.852 * 10) / 10;
     }
 
-    const recordedAt = position.fixTime || position.deviceTime || position.serverTime || new Date().toISOString();
+    const recordedAt = position.fixTime || position.deviceTime || position.serverTime;
 
-    return {
+    return IngestGpsLocationSchema.parse({
       deviceId,
-      latitude: Number(position.latitude),
-      longitude: Number(position.longitude),
+      latitude: position.latitude,
+      longitude: position.longitude,
       speed: speedKmh,
-      heading: position.course !== undefined ? Math.round(Number(position.course)) : undefined,
-      accuracy: position.accuracy !== undefined ? Math.round(Number(position.accuracy)) : undefined,
-      recordedAt,
-    };
+      heading: position.course !== undefined ? Number(position.course) : undefined,
+      accuracy: position.accuracy !== undefined ? Number(position.accuracy) : undefined,
+      recordedAt: recordedAt || new Date().toISOString(),
+    });
   }
 }

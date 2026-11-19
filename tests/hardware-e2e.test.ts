@@ -441,6 +441,9 @@ describe('Hardware / Device Integration & End-to-End Validation (Prompt 3)', () 
   describe('Scenario 6 & 7 — GPS Stale (>60s) & Telemetry Recovery', () => {
     it('detects GPS_UNAVAILABLE when telemetry fix > 60s, and emits GPS_RECOVERED when fresh fix arrives', async () => {
       const client = new ApiClient({ baseUrl, getToken: () => adminAToken });
+      (services.container as any).db.gpsLocations = (services.container as any).db.gpsLocations.filter(
+        (location: { busId: string }) => location.busId !== bus1Id
+      );
 
       // Scenario 6: Ingest stale GPS location (120s old)
       const staleTimestamp = new Date(Date.now() - 120 * 1000).toISOString();

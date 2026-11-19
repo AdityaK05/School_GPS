@@ -1,33 +1,4 @@
-version: '3.8'
-
 services:
-  # ==============================================================================
-  # 1. Primary PostgreSQL + PostGIS Spatial Database for Aegis Platform
-  # ==============================================================================
-  postgres:
-    image: postgis/postgis:15-3.3-alpine
-    container_name: aegis-postgres
-    restart: always
-    environment:
-      POSTGRES_USER: ${POSTGRES_USER:-postgres}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-aegis_secure_password}
-      POSTGRES_DB: ${POSTGRES_DB:-aegis_db}
-    volumes:
-      - pgdata:/var/lib/postgresql/data
-      - ./supabase/migrations:/docker-entrypoint-initdb.d:ro
-    ports:
-      - "${POSTGRES_PORT:-5432}:5432"
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-aegis_db}"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-    networks:
-      - aegis-network
-
-  # ==============================================================================
-  # 2. Aegis Core Backend Telematics & Business API Service
-  # ==============================================================================
   aegis-api:
     build:
       context: .
@@ -37,18 +8,19 @@ services:
     environment:
       PORT: 3000
       NODE_ENV: production
-      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-aegis_secure_password}@postgres:5432/${POSTGRES_DB:-aegis_db}
-      CORS_ORIGIN: "*"
+      CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost,http://127.0.0.1}
       LOG_LEVEL: INFO
-      SUPABASE_URL: ${SUPABASE_URL:-http://postgres:5432}
-      SUPABASE_ANON_KEY: ${SUPABASE_ANON_KEY:-local_anon_token}
-      SUPABASE_SERVICE_ROLE_KEY: ${SUPABASE_SERVICE_ROLE_KEY:-local_service_key}
+      SUPABASE_URL: ${SUPABASE_URL:?Set SUPABASE_URL to the local Supabase API URL}
+      SUPABASE_SERVICE_ROLE_KEY: ${SUPABASE_SERVICE_ROLE_KEY:?Set the local Supabase service-role key}
+      GPS_INGEST_TOKEN: ${GPS_INGEST_TOKEN:?Set a long random GPS_INGEST_TOKEN}
       FCM_DRY_RUN: ${FCM_DRY_RUN:-true}
       AI_ENABLED: ${AI_ENABLED:-false}
-    ports:
-      - "3000:3000"
+    expose:
+      - "3000"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     depends_on:
-      postgres:
+      traccar-db:
         condition: service_healthy
     healthcheck:
       test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/api/v1/health"]
@@ -58,32 +30,29 @@ services:
     networks:
       - aegis-network
 
-  # ==============================================================================
-  # 3. Aegis Administrative Web Portal (Nginx Reverse Proxy & SPA)
-  # ==============================================================================
   aegis-web:
     build:
       context: .
       dockerfile: apps/admin-web/Dockerfile
+      args:
+        VITE_SUPABASE_URL: ${VITE_SUPABASE_URL:-http://localhost:54321}
+        VITE_SUPABASE_ANON_KEY: ${VITE_SUPABASE_ANON_KEY:?Set the local Supabase publishable/anon key}
     container_name: aegis-web
     restart: always
     ports:
-      - "${WEB_PORT:-80}:80"
+      - "127.0.0.1:${WEB_PORT:-8080}:80"
     depends_on:
       - aegis-api
     networks:
       - aegis-network
 
-  # ==============================================================================
-  # 4. Traccar Dedicated Telematics Database
-  # ==============================================================================
   traccar-db:
     image: postgres:15-alpine
     container_name: aegis-traccar-db
     restart: always
     environment:
       POSTGRES_USER: traccar
-      POSTGRES_PASSWORD: traccar_secret_pass
+      POSTGRES_PASSWORD: ${TRACCAR_DB_PASSWORD:?Set a strong TRACCAR_DB_PASSWORD}
       POSTGRES_DB: traccar
     volumes:
       - traccardata:/var/lib/postgresql/data
@@ -95,72 +64,37 @@ services:
     networks:
       - aegis-network
 
-  # ==============================================================================
-  # 5. Traccar Open-Source GPS Protocol Telematics Server
-  # ==============================================================================
   traccar:
-    image: traccar/traccar:latest
+    image: traccar/traccar:6
     container_name: aegis-traccar
     restart: always
     depends_on:
       traccar-db:
         condition: service_healthy
+    environment:
+      CONFIG_USE_ENVIRONMENT_VARIABLES: "true"
+      DATABASE_DRIVER: org.postgresql.Driver
+      DATABASE_URL: jdbc:postgresql://traccar-db:5432/traccar
+      DATABASE_USER: traccar
+      DATABASE_PASSWORD: ${TRACCAR_DB_PASSWORD:?Set a strong TRACCAR_DB_PASSWORD}
+      EVENT_FORWARD_ENABLE: "true"
+      EVENT_FORWARD_URL: http://aegis-api:3000/api/v1/gps/traccar
+      EVENT_FORWARD_HEADERS: "Content-Type: application/json\nX-GPS-Ingest-Token: ${GPS_INGEST_TOKEN:?Set a long random GPS_INGEST_TOKEN}"
     volumes:
-      - ./docker/traccar/traccar.xml:/opt/traccar/conf/traccar.xml:ro
       - traccarlogs:/opt/traccar/logs
     ports:
-      - "8082:8082"   # Traccar Web Management Interface
+      - "127.0.0.1:8082:8082"
       - "5055:5055"   # OsmAnd Protocol (Universal Mobile & HTTP Gateway)
       - "5023:5023"   # GT06 / Coban 4G GPS Tracker Protocol
       - "5027:5027"   # Teltonika Commercial Telematics Protocol
     networks:
       - aegis-network
 
-  # ==============================================================================
-  # 6. Automated Database Backup & Retention Service
-  # ==============================================================================
-  backup-service:
-    image: postgis/postgis:15-3.3-alpine
-    container_name: aegis-backup-service
-    restart: always
-    environment:
-      POSTGRES_HOST: postgres
-      POSTGRES_USER: ${POSTGRES_USER:-postgres}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-aegis_secure_password}
-      POSTGRES_DB: ${POSTGRES_DB:-aegis_db}
-      BACKUP_RETENTION_DAYS: ${BACKUP_RETENTION_DAYS:-14}
-    volumes:
-      - backups:/backups
-      - ./docker/backup/backup.sh:/usr/local/bin/backup.sh:ro
-      - ./docker/backup/restore.sh:/usr/local/bin/restore.sh:ro
-    entrypoint: |
-      sh -c '
-        echo "Aegis Backup Scheduler started. Running initial backup in 15 seconds...";
-        sleep 15;
-        /usr/local/bin/backup.sh;
-        while true; do
-          sleep 86400;
-          /usr/local/bin/backup.sh;
-        done
-      '
-    depends_on:
-      postgres:
-        condition: service_healthy
-    networks:
-      - aegis-network
-
-# ==============================================================================
-# Persistent Volumes & Private Network Configuration
-# ==============================================================================
 volumes:
-  pgdata:
-    name: aegis_pgdata
   traccardata:
     name: aegis_traccardata
   traccarlogs:
     name: aegis_traccarlogs
-  backups:
-    name: aegis_backups
 
 networks:
   aegis-network:

@@ -118,4 +118,17 @@ describe('HTTP API Server Integration', () => {
     expect(res.json.data.activeBuses).toBe(3);
     expect(res.json.data.totalStudents).toBe(4);
   });
+
+  it('GET /api/v1/journeys returns only the authenticated school scope', async () => {
+    const res = await request('/api/v1/journeys', { token: adminToken });
+    expect(res.status).toBe(200);
+    expect(Array.isArray(res.json.data)).toBe(true);
+  });
+
+  it('GET /api/v1/journeys rejects an explicitly requested foreign school', async () => {
+    const res = await request('/api/v1/journeys?schoolId=aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', {
+      token: adminToken,
+    });
+    expect(res.status).toBe(403);
+  });
 });

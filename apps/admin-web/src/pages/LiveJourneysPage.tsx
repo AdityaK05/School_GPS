@@ -19,82 +19,97 @@ interface LiveJourneysPageProps {
   apiClient: ApiClient;
 }
 
+interface JourneyListItem {
+  id: string;
+  tripId: string;
+  student: {
+    firstName: string;
+    lastName: string;
+    admissionNumber: string;
+    className?: string;
+    section?: string;
+  };
+  bus: { fleetNumber?: string; registrationNumber?: string } | null;
+  route: { name: string } | null;
+  state: string;
+  boardingStatus: string;
+  exitStatus: string;
+  boardedAt?: string;
+  location: { latitude: number; longitude: number; recordedAt: string } | null;
+}
+
+interface JourneyRow {
+  id: string;
+  tripId: string;
+  studentName: string;
+  className: string;
+  admissionNumber: string;
+  busNumber: string;
+  routeName: string;
+  currentLocation: string;
+  destination: string;
+  status: string;
+  statusLabel: string;
+  eta: string;
+  boardedAt: string;
+}
+
 export const LiveJourneysPage: React.FC<LiveJourneysPageProps> = ({ apiClient }) => {
   const { navigate } = useRouter();
   const { colors } = useTheme();
   const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState<'ALL' | 'BOARDED' | 'ONBOARD' | 'COMPLETED'>('ALL');
+  const [statusFilter, setStatusFilter] = useState<'ALL' | 'EXPECTED' | 'ONBOARD' | 'COMPLETED'>('ALL');
 
-  const [journeys] = useState([
-    {
-      id: 'c1111111-1111-1111-1111-111111111101',
-      studentName: 'Aarav Sharma',
-      className: 'Class 7-B',
-      admissionNumber: 'ADM-2024-001',
-      busNumber: 'Bus 12',
-      busReg: 'UP-16-BT-9912',
-      currentLocation: 'Sector 61 Crossing',
-      currentStop: 'Sector 62 Metro Gate #2',
-      nextStop: 'Fortis Hospital Crossing',
-      destination: 'Oakridge Campus',
-      status: 'ONBOARD',
-      statusLabel: 'On the way',
-      eta: '8 min',
-      boardedAt: '07:42 AM',
-      driver: 'Rajesh Kumar',
-    },
-    {
-      id: 'c1111111-1111-1111-1111-111111111102',
-      studentName: 'Diya Sharma',
-      className: 'Class 2-B',
-      admissionNumber: 'ADM-2024-002',
-      busNumber: 'Bus 12',
-      busReg: 'UP-16-BT-9912',
-      currentLocation: 'Sector 62 Corridor',
-      currentStop: 'Shipra Sun City Gate #4',
-      nextStop: 'Indirapuram Habitat Centre',
-      destination: 'Oakridge Campus',
-      status: 'BOARDED',
-      statusLabel: 'Boarded',
-      eta: '14 min',
-      boardedAt: '07:48 AM',
-      driver: 'Rajesh Kumar',
-    },
-    {
-      id: 'c1111111-1111-1111-1111-111111111104',
-      studentName: 'Ananya Verma',
-      className: 'Class 5-A',
-      admissionNumber: 'ADM-2024-004',
-      busNumber: 'Bus 14',
-      busReg: 'UP-16-BT-9908',
-      currentLocation: 'Ring Road Corridor',
-      currentStop: 'Vaishali Metro Station',
-      nextStop: 'Anand Vihar Flyover',
-      destination: 'Oakridge Campus',
-      status: 'ONBOARD',
-      statusLabel: 'On the way',
-      eta: '11 min',
-      boardedAt: '07:35 AM',
-      driver: 'Amit Singh',
-    },
-    {
-      id: 'c1111111-1111-1111-1111-111111111105',
-      studentName: 'Rohan Gupta',
-      className: 'Class 8-C',
-      admissionNumber: 'ADM-2024-005',
-      busNumber: 'Bus 08',
-      busReg: 'UP-16-BT-9904',
-      currentLocation: 'Campus Gate #1',
-      currentStop: 'Oakridge Campus Terminus',
-      nextStop: 'Completed',
-      destination: 'Oakridge Campus',
-      status: 'COMPLETED',
-      statusLabel: 'Arrived at School',
-      eta: 'Arrived',
-      boardedAt: '07:20 AM',
-      driver: 'Manoj Kumar',
-    },
-  ]);
+  const [journeys, setJourneys] = useState<JourneyRow[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let active = true;
+    apiClient.listJourneys()
+      .then((items) => {
+        if (!active) return;
+        const rows = (items as JourneyListItem[]).map((item) => {
+          const status = item.exitStatus === 'EXITED'
+            ? 'COMPLETED'
+            : item.boardingStatus === 'BOARDED'
+              ? 'ONBOARD'
+              : item.state === 'EXPECTED' || item.state === 'BOARDING_PENDING'
+                ? 'EXPECTED'
+                : item.state;
+          return {
+            id: item.id,
+            tripId: item.tripId,
+            studentName: `${item.student.firstName} ${item.student.lastName}`.trim(),
+            className: [item.student.className, item.student.section].filter(Boolean).join('-') || 'Class not set',
+            admissionNumber: item.student.admissionNumber,
+            busNumber: item.bus?.fleetNumber || item.bus?.registrationNumber || 'Bus unassigned',
+            routeName: item.route?.name || 'Route not assigned',
+            currentLocation: item.location
+              ? `${item.location.latitude.toFixed(5)}, ${item.location.longitude.toFixed(5)}`
+              : 'No GPS fix available',
+            destination: item.route?.name || 'Destination not configured',
+            status,
+            statusLabel: status === 'COMPLETED'
+              ? 'Exit recorded'
+              : status === 'ONBOARD'
+                ? 'Boarding recorded'
+                : status.replaceAll('_', ' ').toLowerCase(),
+            eta: 'Unavailable',
+            boardedAt: item.boardedAt ? new Date(item.boardedAt).toLocaleString() : 'Not recorded',
+          };
+        });
+        setJourneys(rows);
+        setLoadError(null);
+      })
+      .catch((error: unknown) => {
+        if (active) setLoadError(error instanceof Error ? error.message : 'Journey data could not be loaded.');
+      })
+      .finally(() => {
+        if (active) setIsLoading(false);
+      });
+    return () => { active = false; };
+  }, [apiClient]);
 
   const filtered = journeys.filter((j) => {
     const matchesSearch =
@@ -183,7 +198,7 @@ export const LiveJourneysPage: React.FC<LiveJourneysPageProps> = ({ apiClient })
           {[
             { id: 'ALL', label: 'All Active' },
             { id: 'ONBOARD', label: 'On Route' },
-            { id: 'BOARDED', label: 'Boarded' },
+            { id: 'EXPECTED', label: 'Awaiting boarding' },
             { id: 'COMPLETED', label: 'Arrived' },
           ].map((tab) => (
             <button
@@ -207,11 +222,17 @@ export const LiveJourneysPage: React.FC<LiveJourneysPageProps> = ({ apiClient })
       </div>
 
       {/* Journeys List */}
+      {loadError && (
+        <div role="alert" style={{ padding: 14, borderRadius: radii.md, border: `1px solid ${colors.dangerBorder}`, background: colors.dangerLight, color: colors.danger }}>
+          Journey records could not be loaded: {loadError}
+        </div>
+      )}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+        {isLoading && <p role="status" style={{ color: colors.textSecondary }}>Loading journey records…</p>}
         {filtered.map((j) => (
           <div
             key={j.id}
-            onClick={() => navigate(`/journeys/${j.id}`)}
+            onClick={() => navigate(`/journeys/${j.tripId}`)}
             style={{
               backgroundColor: colors.card,
               borderRadius: radii.md,
@@ -290,8 +311,8 @@ export const LiveJourneysPage: React.FC<LiveJourneysPageProps> = ({ apiClient })
               <div style={{ color: colors.textMuted, fontSize: '12px' }}>&rarr;</div>
 
               <div style={{ display: 'flex', flexDirection: 'column' }}>
-                <span style={{ fontSize: '9px', color: colors.textMuted, fontWeight: 700, textTransform: 'uppercase' }}>Boarded Stop</span>
-                <span style={{ fontSize: '12px', fontWeight: 600, color: colors.textPrimary, marginTop: '1px' }}>{j.currentStop}</span>
+                <span style={{ fontSize: '9px', color: colors.textMuted, fontWeight: 700, textTransform: 'uppercase' }}>Assigned Route</span>
+                <span style={{ fontSize: '12px', fontWeight: 600, color: colors.textPrimary, marginTop: '1px' }}>{j.routeName}</span>
               </div>
 
               <div style={{ color: colors.textMuted, fontSize: '12px' }}>&rarr;</div>
@@ -317,7 +338,7 @@ export const LiveJourneysPage: React.FC<LiveJourneysPageProps> = ({ apiClient })
 
             {/* Row 3: Footer details & Passport trigger */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '11px', color: colors.textSecondary }}>
-              <span>Boarded at: <strong>{j.boardedAt}</strong> &bull; Driver: {j.driver}</span>
+              <span>Boarding event: <strong>{j.boardedAt}</strong> &bull; ETA: unavailable</span>
               <span style={{ fontWeight: 700, color: colors.primary, display: 'flex', alignItems: 'center', gap: '4px' }}>
                 <span>View Journey Passport</span>
                 <ArrowRight size={12} strokeWidth={2} />
@@ -325,6 +346,11 @@ export const LiveJourneysPage: React.FC<LiveJourneysPageProps> = ({ apiClient })
             </div>
           </div>
         ))}
+        {!isLoading && !loadError && filtered.length === 0 && (
+          <p style={{ padding: 24, textAlign: 'center', color: colors.textSecondary }}>
+            No journey records match this filter. A GPS location or bus arrival does not by itself confirm a student exit.
+          </p>
+        )}
       </div>
     </div>
   );

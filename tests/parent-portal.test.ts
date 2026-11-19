@@ -280,7 +280,29 @@ describe('Parent / Guardian Experience & Scoped Safety API', () => {
       getToken: () => `test-token:${guardianUserA}:PARENT:${schoolA}`,
     });
 
-    await expect(client.getChildJourneyDetails(studentB1)).rejects.toThrow(/FORBIDDEN/);
+    await expect(client.getChildJourneyDetails(studentB1)).rejects.toThrow(/FORBIDDEN|TENANT_ACCESS_DENIED/);
+  });
+
+  it('does not expose unlinked students from the parent’s school', async () => {
+    const unlinkedStudentId = 'std_child_a3';
+    await container.studentRepo.create({
+      id: unlinkedStudentId,
+      schoolId: schoolA,
+      admissionNumber: 'ADM-A3',
+      firstName: 'Unlinked',
+      lastName: 'Student',
+      status: 'ACTIVE',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    });
+    const client = new ApiClient({
+      baseUrl,
+      getToken: () => `test-token:${guardianUserA}:PARENT:${schoolA}`,
+    });
+
+    const children = await client.getParentChildren();
+    expect(children.map((child) => child.student.id)).not.toContain(unlinkedStudentId);
+    await expect(client.getChildJourneyDetails(unlinkedStudentId)).rejects.toThrow(/FORBIDDEN/);
   });
 
   it('allows parent to retrieve notifications and mark them as read', async () => {

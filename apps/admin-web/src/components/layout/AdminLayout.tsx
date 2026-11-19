@@ -3,6 +3,7 @@ import { useRouter } from '../../router/Router';
 import { useTheme } from '../../theme/ThemeContext';
 import { radii, shadows } from '../../theme/design-system';
 import logoImg from '../../assets/logo.png';
+import { DemoEnvironmentNotice } from '../DemoEnvironmentNotice';
 import {
   House,
   Route,
@@ -185,10 +186,8 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
           })}
         </nav>
 
-        {/* Divider */}
+        {import.meta.env.DEV && <>
         <div style={{ height: '1px', backgroundColor: colors.sidebarBorder, margin: '12px 0 10px 0' }} />
-
-        {/* DEMO Section (Section 6 & 37) */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
           <div
             style={{
@@ -272,6 +271,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
             <span>Demo mode</span>
           </button>
         </div>
+        </>}
       </aside>
 
       {/* 2. MOBILE TOP HEADER (shown on screen < 900px) */}
@@ -330,7 +330,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
             {isDark ? <Sun size={15} strokeWidth={2} /> : <Moon size={15} strokeWidth={2} />}
           </button>
 
-          <button
+          {import.meta.env.DEV && <button
             onClick={() => setShowDemoPanel(!showDemoPanel)}
             style={{
               padding: '6px 10px',
@@ -348,7 +348,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
           >
             <Sliders size={13} strokeWidth={2} />
             <span>Demo</span>
-          </button>
+          </button>}
 
           <button
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
@@ -420,7 +420,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
             );
           })}
 
-          <div style={{ display: 'flex', gap: '8px', marginTop: '12px', paddingTop: '12px', borderTop: `1px solid ${colors.sidebarBorder}` }}>
+          {import.meta.env.DEV && <div style={{ display: 'flex', gap: '8px', marginTop: '12px', paddingTop: '12px', borderTop: `1px solid ${colors.sidebarBorder}` }}>
             <button
               onClick={() => {
                 setPersona('parent');
@@ -467,7 +467,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
               <UserCheck size={14} strokeWidth={1.8} />
               <span>Attendant View</span>
             </button>
-          </div>
+          </div>}
         </div>
       )}
 
@@ -484,6 +484,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
           transition: 'background-color 0.2s',
         }}
       >
+        <DemoEnvironmentNotice />
         {children}
       </main>
 

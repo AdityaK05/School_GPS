@@ -21,6 +21,17 @@ export interface ApiClientConfig {
   getToken?: () => string | null;
 }
 
+export class ApiClientError extends Error {
+  constructor(
+    message: string,
+    public readonly status: number,
+    public readonly code?: string
+  ) {
+    super(message);
+    this.name = 'ApiClientError';
+  }
+}
+
 export class ApiClient {
   constructor(private config: ApiClientConfig) {}
 
@@ -44,11 +55,21 @@ export class ApiClient {
       body: options.body ? JSON.stringify(options.body) : undefined,
     });
 
-    const result = (await response.json()) as ApiResponse<T>;
+    let result: ApiResponse<T>;
+    try {
+      result = (await response.json()) as ApiResponse<T>;
+    } catch {
+      throw new ApiClientError(
+        `Request failed with HTTP ${response.status}: response was not valid JSON`,
+        response.status,
+        'INVALID_RESPONSE'
+      );
+    }
 
-    if (!result.success) {
-      const errorMsg = result.error ? `${result.error.code}: ${result.error.message}` : 'Request failed';
-      throw new Error(errorMsg);
+    if (!response.ok || !result.success) {
+      const error = 'error' in result ? result.error : undefined;
+      const errorMsg = error ? `${error.code}: ${error.message}` : 'Request failed';
+      throw new ApiClientError(errorMsg, response.status, error?.code);
     }
 
     return result.data;
@@ -223,7 +244,16 @@ export class ApiClient {
   }
 
   // Dashboard Overview
-  public async getDashboardOverview(): Promise<{ activeBuses: number; totalStudents: number; openExceptions: number }> {
+  public async getDashboardOverview(): Promise<{
+    activeBuses: number;
+    totalBuses: number;
+    totalStudents: number;
+    accountedStudents: number;
+    manifestStudents: number;
+    studentsOnboard: number;
+    openExceptions: number;
+    recentIncidents: JourneyException[];
+  }> {
     return this.request('/api/v1/dashboard/overview');
   }
 
@@ -302,6 +332,9 @@ export class ApiClient {
   // Extended Trips
   public async listTrips(date?: string): Promise<any[]> {
     return this.request(date ? `/api/v1/trips?date=${date}` : '/api/v1/trips');
+  }
+  public async listJourneys(date?: string): Promise<any[]> {
+    return this.request(date ? `/api/v1/journeys?date=${date}` : '/api/v1/journeys');
   }
   public async getTrip(id: string): Promise<any> {
     return this.request(`/api/v1/trips/${id}`);

@@ -25,7 +25,7 @@ import {
   Clock3,
 } from 'lucide-react';
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL || 'https://school-gps-api.onrender.com';
+const API_BASE = import.meta.env.VITE_API_BASE_URL || '';
 const PARENT_TOKEN =
   sessionStorage.getItem('aegis_access_token') ||
   (import.meta.env.DEV

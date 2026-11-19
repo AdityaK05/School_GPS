@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useRouter } from '../router/Router';
 import { useTheme } from '../theme/ThemeContext';
 import { radii, shadows } from '../theme/design-system';
@@ -16,47 +16,61 @@ export const RoutesPage: React.FC<RoutesPageProps> = ({ apiClient }) => {
   const { colors, isDark } = useTheme();
   const selectedRouteId = getParam('id');
 
-  const [routes] = useState([
-    {
-      id: 'r_01',
-      name: 'North Corridor Express',
-      code: 'R-NC-01',
-      direction: 'MORNING',
-      assignedBuses: ['Bus 12 (KA-01-EXP-9999)'],
-      studentsCount: 32,
-      stops: [
-        { seq: 1, name: 'Sector 62 Metro Gate #2', geofence: '50m buffer', students: 8, time: '07:35 AM' },
-        { seq: 2, name: 'Shipra Sun City Gate #4', geofence: '50m buffer', students: 10, time: '07:42 AM' },
-        { seq: 3, name: 'Fortis Hospital Crossing', geofence: '50m buffer', students: 6, time: '07:48 AM' },
-        { seq: 4, name: 'Indirapuram Habitat Centre', geofence: '50m buffer', students: 8, time: '07:52 AM' },
-        { seq: 5, name: 'Oakridge Campus Terminus', geofence: '75m buffer', students: 32, time: '08:00 AM' },
-      ],
-      activeJourney: {
-        busNumber: 'Bus 12',
-        currentStop: 'Stop 1: Sector 62 Metro',
-        status: 'ON_ROUTE',
-      },
-    },
-    {
-      id: 'r_02',
-      name: 'Vaishali & East Ring Road',
-      code: 'R-VR-02',
-      direction: 'MORNING',
-      assignedBuses: ['Bus 14 (KA-01-EXP-4444)'],
-      studentsCount: 28,
-      stops: [
-        { seq: 1, name: 'Vaishali Metro Station Bay 2', geofence: '50m buffer', students: 12, time: '07:30 AM' },
-        { seq: 2, name: 'Anand Vihar Flyover Crossing', geofence: '50m buffer', students: 8, time: '07:40 AM' },
-        { seq: 3, name: 'Ghazipur Junction', geofence: '50m buffer', students: 8, time: '07:48 AM' },
-        { seq: 4, name: 'Oakridge Campus Terminus', geofence: '75m buffer', students: 28, time: '08:02 AM' },
-      ],
-      activeJourney: {
-        busNumber: 'Bus 14',
-        currentStop: 'Stop 2: Anand Vihar Crossing',
-        status: 'ON_ROUTE',
-      },
-    },
-  ]);
+  type RouteRow = {
+    id: string;
+    name: string;
+    code: string;
+    direction: string;
+    status: string;
+    assignedBuses: string[];
+    studentsCount: number;
+    stops: Array<{ id: string; seq: number; name: string; geofence: string; students: number; time: string }>;
+  };
+  type RouteRecord = { id: string; name: string; code?: string; direction?: string; status?: string; stops?: Array<{ id: string; name: string; sequence?: number; geofenceRadiusMeters?: number }> };
+  type StudentAssignment = { assignment?: { routeId: string; stopId: string } };
+  type RouteTrip = { routeId: string; busFleetNumber?: string; status: string };
+  const [routes, setRoutes] = useState<RouteRow[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let active = true;
+    Promise.all([apiClient.listRoutes(), apiClient.getStudents(), apiClient.listTrips()])
+      .then(([routeItems, studentItems, tripItems]) => {
+        if (!active) return;
+        const students = studentItems as StudentAssignment[];
+        const trips = tripItems as RouteTrip[];
+        setRoutes((routeItems as RouteRecord[]).map((route) => {
+          const routeStudents = students.filter((student) => student.assignment?.routeId === route.id);
+          const routeTrips = trips.filter((trip) => trip.routeId === route.id && ['STARTED', 'IN_PROGRESS'].includes(trip.status));
+          return {
+            id: route.id,
+            name: route.name,
+            code: route.code || 'Code not configured',
+            direction: route.direction || 'Direction not configured',
+            status: route.status || 'Status unknown',
+            assignedBuses: routeTrips.map((trip) => trip.busFleetNumber || 'Bus assignment recorded'),
+            studentsCount: routeStudents.length,
+            stops: (route.stops || []).map((stop, index) => ({
+              id: stop.id,
+              seq: stop.sequence ?? index + 1,
+              name: stop.name,
+              geofence: stop.geofenceRadiusMeters ? `${stop.geofenceRadiusMeters}m radius` : 'Not configured',
+              students: routeStudents.filter((student) => student.assignment?.stopId === stop.id).length,
+              time: 'Not configured',
+            })),
+          };
+        }));
+        setLoadError(null);
+      })
+      .catch((error: unknown) => {
+        if (active) setLoadError(error instanceof Error ? error.message : 'Route data could not be loaded.');
+      })
+      .finally(() => {
+        if (active) setIsLoading(false);
+      });
+    return () => { active = false; };
+  }, [apiClient]);
 
   const activeRoute = selectedRouteId ? routes.find((r) => r.id === selectedRouteId) || routes[0] : null;
 
@@ -76,8 +90,15 @@ export const RoutesPage: React.FC<RoutesPageProps> = ({ apiClient }) => {
         </p>
       </div>
 
+      {loadError && (
+        <div role="alert" style={{ padding: 14, borderRadius: radii.md, border: `1px solid ${colors.dangerBorder}`, background: colors.dangerLight, color: colors.danger }}>
+          Route data could not be loaded: {loadError}
+        </div>
+      )}
+      {isLoading && <p role="status" style={{ color: colors.textSecondary }}>Loading routes and stops…</p>}
+
       {/* If looking at route detail */}
-      {activeRoute ? (
+      {activeRoute && activeRoute.stops.length > 0 ? (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
           <button
             onClick={() => navigate('/routes')}
@@ -130,21 +151,21 @@ export const RoutesPage: React.FC<RoutesPageProps> = ({ apiClient }) => {
                   </span>
                 </div>
               </div>
-              <StatusBadge type="info" icon="●" label="Active Corridor" />
+              <StatusBadge type="neutral" label={activeRoute.status} />
             </div>
 
             {/* Visual Corridor Progress */}
             <div style={{ margin: '24px 0', padding: '16px 20px', backgroundColor: colors.canvasBg, borderRadius: radii.lg, border: `1px solid ${colors.borderLight}` }}>
               <JourneyLine
                 orientation="horizontal"
-                busNumber="Bus 12"
+                busNumber={activeRoute.assignedBuses[0] || 'No active bus'}
                 originName={activeRoute.stops[0].name}
                 destinationName={activeRoute.stops[activeRoute.stops.length - 1].name}
                 stops={activeRoute.stops.map((s, idx) => ({
                   id: `stop_${s.seq}`,
                   name: s.name,
                   time: s.time,
-                  status: idx === 0 ? 'passed' : idx === 1 ? 'current' : 'upcoming',
+                  status: 'upcoming',
                   studentsCount: s.students,
                 }))}
               />
@@ -197,7 +218,7 @@ export const RoutesPage: React.FC<RoutesPageProps> = ({ apiClient }) => {
                         </div>
                         <div style={{ fontSize: '11px', color: colors.textSecondary, marginTop: '2px', display: 'flex', alignItems: 'center', gap: '6px' }}>
                           <ShieldCheck size={12} strokeWidth={2} color={colors.success} />
-                          PostGIS Geofence: {st.geofence} &bull; Scheduled: {st.time}
+                          Geofence radius: {st.geofence} &bull; Schedule: {st.time}
                         </div>
                       </div>
                       <span style={{ fontSize: '12px', fontWeight: 700, color: colors.primary, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
@@ -251,12 +272,12 @@ export const RoutesPage: React.FC<RoutesPageProps> = ({ apiClient }) => {
                     <span>&bull;</span>
                     <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
                       <BusFront size={13} strokeWidth={2} color={colors.primary} />
-                      {r.assignedBuses[0]}
+                      {r.assignedBuses[0] || 'No active trip'}
                     </span>
                   </div>
                 </div>
 
-                <StatusBadge type="info" label="Active Corridor" />
+                <StatusBadge type="neutral" label={r.status} />
               </div>
 
               {/* Visual Stop Sequence Ribbon */}
@@ -283,6 +304,9 @@ export const RoutesPage: React.FC<RoutesPageProps> = ({ apiClient }) => {
                     )}
                   </React.Fragment>
                 ))}
+                {!isLoading && !loadError && routes.length === 0 && (
+                  <p style={{ padding: 24, textAlign: 'center', color: colors.textSecondary }}>No routes have been configured for this school.</p>
+                )}
               </div>
 
               <div style={{ marginTop: '14px', display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '4px', fontSize: '12px', fontWeight: 700, color: colors.primary }}>

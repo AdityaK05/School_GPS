@@ -165,4 +165,12 @@ describe('Persistent Mobile Queue Storage', () => {
     expect(remaining.some((i) => i.localId === 'loc_recent_synced')).toBe(true);
     expect(remaining.some((i) => i.localId === 'loc_pending')).toBe(true);
   });
+
+  it('fails visibly instead of clearing a corrupt durable queue', async () => {
+    adapter.data = '{invalid-json';
+    const restoredQueue = new PersistentQueueStorage(adapter);
+
+    await expect(restoredQueue.init()).rejects.toThrow();
+    expect(adapter.data).toBe('{invalid-json');
+  });
 });
