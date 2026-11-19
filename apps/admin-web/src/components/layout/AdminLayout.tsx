@@ -4,6 +4,7 @@ import { useTheme } from '../../theme/ThemeContext';
 import { radii, shadows } from '../../theme/design-system';
 import logoImg from '../../assets/logo.png';
 import { DemoEnvironmentNotice } from '../DemoEnvironmentNotice';
+import { isLocalDemoMode } from '../../demo-mode';
 import {
   House,
   Route,
@@ -186,7 +187,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
           })}
         </nav>
 
-        {import.meta.env.DEV && <>
+        {isLocalDemoMode && <>
         <div style={{ height: '1px', backgroundColor: colors.sidebarBorder, margin: '12px 0 10px 0' }} />
         <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
           <div
@@ -330,7 +331,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
             {isDark ? <Sun size={15} strokeWidth={2} /> : <Moon size={15} strokeWidth={2} />}
           </button>
 
-          {import.meta.env.DEV && <button
+          {isLocalDemoMode && <button
             onClick={() => setShowDemoPanel(!showDemoPanel)}
             style={{
               padding: '6px 10px',
@@ -420,7 +421,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
             );
           })}
 
-          {import.meta.env.DEV && <div style={{ display: 'flex', gap: '8px', marginTop: '12px', paddingTop: '12px', borderTop: `1px solid ${colors.sidebarBorder}` }}>
+          {isLocalDemoMode && <div style={{ display: 'flex', gap: '8px', marginTop: '12px', paddingTop: '12px', borderTop: `1px solid ${colors.sidebarBorder}` }}>
             <button
               onClick={() => {
                 setPersona('parent');

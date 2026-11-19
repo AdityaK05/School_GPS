@@ -7,6 +7,7 @@ import { StatusBadge } from '../components/ui/SharedComponents';
 import { InteractiveMap, MapMarker } from '../components/InteractiveMap';
 import { JourneyLine } from '../components/ui/JourneyLine';
 import { ApiClient } from '@school-transport-platform/client-sdk';
+import { isLocalDemoMode } from '../demo-mode';
 import {
   House,
   Route,
@@ -28,7 +29,7 @@ import {
 const API_BASE = import.meta.env.VITE_API_BASE_URL || '';
 const PARENT_TOKEN =
   sessionStorage.getItem('aegis_access_token') ||
-  (import.meta.env.DEV
+  (isLocalDemoMode
     ? 'test-token:55555555-5555-5555-5555-555555555555:PARENT:11111111-1111-1111-1111-111111111111'
     : '');
 

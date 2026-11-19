@@ -32,6 +32,17 @@ The Compose stack runs the API, admin web app, and Traccar. Supabase (database, 
 
 4. Create an administrator in local Supabase Auth and provision the corresponding school/role profile using the project’s authorized setup workflow. The admin web login uses Supabase Auth; the API still resolves roles and tenant access server-side.
 
+### Local demo preview (no sign-in)
+
+For a local-only UI preview using simulated data, start the API in development mode in one terminal and the demo preview in another:
+
+```bash
+NODE_ENV=development SUPABASE_URL= SUPABASE_SERVICE_ROLE_KEY= npm run dev:api
+npm --prefix apps/admin-web run preview:demo
+```
+
+Open `http://localhost:4173`. The blank Supabase settings keep this preview on the seeded in-memory development repository. It bypasses web sign-in only on loopback hosts, uses the development API token, and displays a demo-mode warning. Do not connect this mode to real student data or expose it to a network. Production deployments without this explicit demo build mode continue to require sign-in.
+
 Do not use the example values or local Supabase credentials in a production deployment. Compose does not run Supabase itself, and local migrations must not be applied to a production project with `supabase db reset`.
 
 The Expo parent/attendant UI is still a labeled demo and is disabled in non-development builds; do not distribute it to families or staff until authenticated workflows and hardware-backed scanning are implemented and tested.

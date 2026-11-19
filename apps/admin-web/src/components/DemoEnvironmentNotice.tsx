@@ -1,7 +1,8 @@
 import React from 'react';
+import { isLocalDemoMode } from '../demo-mode';
 
 export const DemoEnvironmentNotice: React.FC = () => {
-  if (!import.meta.env.DEV) return null;
+  if (!isLocalDemoMode) return null;
 
   return (
     <div

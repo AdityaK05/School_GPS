@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useTheme } from '../theme/ThemeContext';
 import { radii, shadows } from '../theme/design-system';
 import { RfidIcon } from './ui/RfidIcon';
+import { isLocalDemoMode } from '../demo-mode';
 import {
   Sliders,
   Play,
@@ -19,7 +20,7 @@ import {
 const API_BASE = import.meta.env.VITE_API_BASE_URL || '';
 const DEMO_TOKEN =
   sessionStorage.getItem('aegis_access_token') ||
-  (import.meta.env.DEV
+  (isLocalDemoMode
     ? 'test-token:22222222-2222-2222-2222-222222222222:SCHOOL_ADMIN:11111111-1111-1111-1111-111111111111'
     : '');
 

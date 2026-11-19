@@ -26,6 +26,7 @@ import { ParentAppView } from './pages/ParentAppView';
 import { AttendantAppView } from './pages/AttendantAppView';
 import { MobileAdminView } from './pages/MobileAdminView';
 import { DemoEnvironmentNotice } from './components/DemoEnvironmentNotice';
+import { isLocalDemoMode } from './demo-mode';
 
 const apiBaseUrl =
   (import.meta.env?.VITE_API_BASE_URL as string) ||
@@ -33,7 +34,7 @@ const apiBaseUrl =
 
 const authToken =
   sessionStorage.getItem('aegis_access_token') ||
-  (import.meta.env.DEV
+  (isLocalDemoMode
     ? 'test-token:22222222-2222-2222-2222-222222222222:SCHOOL_ADMIN:11111111-1111-1111-1111-111111111111'
     : '');
 
@@ -134,7 +135,7 @@ const AdminSignIn: React.FC = () => {
 const AppRoutes: React.FC = () => {
   const { pathname, persona, showDemoPanel, setShowDemoPanel } = useRouter();
 
-  if (!authToken && !import.meta.env.DEV) {
+  if (!authToken && !isLocalDemoMode) {
     return <AdminSignIn />;
   }
 
@@ -153,7 +154,7 @@ const AppRoutes: React.FC = () => {
     persona === 'parent' ||
     persona === 'attendant' ||
     persona === 'mobile_preview';
-  if (!import.meta.env.DEV && unavailableInProduction) {
+  if (!isLocalDemoMode && unavailableInProduction) {
     return (
       <main style={{ maxWidth: 640, margin: '12vh auto', padding: 28, fontFamily: 'sans-serif' }}>
         <h1>Workflow not enabled</h1>
@@ -169,7 +170,7 @@ const AppRoutes: React.FC = () => {
       <>
         <DemoEnvironmentNotice />
         <ParentAppView apiClient={apiClient} />
-        {import.meta.env.DEV && <DemoControlPanel isOpen={showDemoPanel} onClose={() => setShowDemoPanel(false)} />}
+        {isLocalDemoMode && <DemoControlPanel isOpen={showDemoPanel} onClose={() => setShowDemoPanel(false)} />}
       </>
     );
   }
@@ -265,7 +266,7 @@ const AppRoutes: React.FC = () => {
 
   return (
     <AdminLayout>
-      {!import.meta.env.DEV && (
+      {!isLocalDemoMode && (
         <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 12 }}>
           <button
             onClick={() => {
@@ -279,7 +280,7 @@ const AppRoutes: React.FC = () => {
         </div>
       )}
       {renderAdminPage()}
-      {import.meta.env.DEV && <DemoControlPanel isOpen={showDemoPanel} onClose={() => setShowDemoPanel(false)} />}
+      {isLocalDemoMode && <DemoControlPanel isOpen={showDemoPanel} onClose={() => setShowDemoPanel(false)} />}
     </AdminLayout>
   );
 };
